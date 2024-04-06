@@ -6,7 +6,6 @@ from torch.optim import Adam
 from torch.optim.lr_scheduler import MultiStepLR
 from dgl.nn.pytorch import GINEConv
 from dgl.nn.pytorch.glob import AvgPooling
-from torch_geometric.nn import GINConv, global_mean_pool
 from sklearn.metrics import accuracy_score, matthews_corrcoef
 
 from util import MC_dropout
@@ -50,7 +49,7 @@ class GIN(nn.Module):
 
         self.gnn_layers = nn.ModuleList(
             [
-                GINConv(
+                GINEConv(
                     apply_func=nn.Sequential(
                         nn.Linear(node_hid_feats, node_hid_feats),
                         nn.ReLU(),
@@ -61,7 +60,7 @@ class GIN(nn.Module):
             ]
         )
 
-        self.readout = global_mean_pool()
+        self.readout = AvgPooling()
 
         self.sparsify = nn.Sequential(
             nn.Linear(node_hid_feats, readout_feats), nn.PReLU()
