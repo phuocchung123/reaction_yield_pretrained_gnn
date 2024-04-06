@@ -8,8 +8,8 @@ from dgl.nn.pytorch import GINEConv
 from dgl.nn.pytorch.glob import AvgPooling
 from sklearn.metrics import accuracy_score, matthews_corrcoef
 
-from sample.src_chung.util import MC_dropout
-from sample.src_chung.self_attention import EncoderLayer
+from util import MC_dropout
+from self_attention import EncoderLayer
 
 
 class linear_head(nn.Module):
