@@ -119,7 +119,7 @@ class reactionMPNN(nn.Module):
         self.mpnn = GIN(node_in_feats, edge_in_feats)
         state_dict = torch.load(
             pretrained_model_path,
-            map_location='cuda' if torch.cuda.is_available() else 'cpu',
+            map_location='cuda:0',
         )
         self.mpnn.load_my_state_dict(state_dict)
         print("Successfully loaded pretrained model!")
@@ -135,16 +135,16 @@ class reactionMPNN(nn.Module):
         )
 
         # Cross-Attention Module
-        self.rea_attention_pro = EncoderLayer(128, 0.1, 0.1, 2)  # 注意力机制
-        self.pro_attention_rea = EncoderLayer(128, 0.1, 0.1, 2)
+        # self.rea_attention_pro = EncoderLayer(128, 0.1, 0.1, 2)  # 注意力机制
+        # self.pro_attention_rea = EncoderLayer(128, 0.1, 0.1, 2)
 
     def forward(self, rmols, pmols):
         r_graph_feats = torch.sum(torch.stack([self.mpnn(mol) for mol in rmols]), 0)
         p_graph_feats = torch.sum(torch.stack([self.mpnn(mol) for mol in pmols]), 0)
         r_graph_feats_attetion=r_graph_feats
 
-        r_graph_feats=self.rea_attention_pro(r_graph_feats, p_graph_feats)
-        p_graph_feats=self.pro_attention_rea(p_graph_feats, r_graph_feats_attetion)
+        # r_graph_feats=self.rea_attention_pro(r_graph_feats, p_graph_feats)
+        # p_graph_feats=self.pro_attention_rea(p_graph_feats, r_graph_feats_attetion)
 
 
 
@@ -161,7 +161,7 @@ def training(
     model_path,
     val_monitor_epoch=400,
     n_forward_pass=5,
-    cuda=torch.device('cuda' if torch.cuda.is_available() else 'cpu'),
+    cuda=torch.device('cuda:0'),
 ):
     train_size = train_loader.dataset.__len__()
     batch_size = train_loader.batch_size
@@ -262,7 +262,7 @@ def inference(
     net,
     test_loader,
     n_forward_pass=30,
-    cuda=torch.device('cuda' if torch.cuda.is_available() else 'cpu'),
+    cuda=torch.device('cuda:0'),
 ):
     batch_size = test_loader.batch_size
 
