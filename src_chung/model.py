@@ -158,7 +158,7 @@ def training(
     train_loader,
     val_loader,
     model_path,
-    val_monitor_epoch=400,
+    val_monitor_epoch=1,
     n_forward_pass=5,
     cuda=torch.device('cuda:0'),
 ):
