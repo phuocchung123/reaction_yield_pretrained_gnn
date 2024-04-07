@@ -206,6 +206,7 @@ def training(
             pred= net(inputs_rmol, inputs_pmol)
             pred_copy=pred.detach().cpu().numpy()
             for x in pred_copy:
+                x=x.reshape(1,-1)
                 x=np.argmax(x)
                 pred_list.append(x)
             loss = loss_fn(pred, labels)
@@ -276,6 +277,7 @@ def training(
 
                     labels_val = batchdata[-1]
                     for x in labels_val:
+                        x=x.reshape(1,-1)
                         val_label_list.append(x)
                     labels_val = labels_val.to(cuda)
 
