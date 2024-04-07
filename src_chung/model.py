@@ -199,12 +199,15 @@ def training(
             ]
 
             labels = batchdata[-1]
-            label_list.append(labels)
+            for x in labels:
+                label_list.append(x)
             labels = labels.to(cuda)
 
             pred= net(inputs_rmol, inputs_pmol)
+            pred_copy=pred.detach().cpu().numpy()
+            for x in pred_copy:
+                pred_list.append(x)
             loss = loss_fn(pred, labels)
-            pred_list.append(pred.detach().cpu().numpy())
             ##Uncertainty 
             # loss = (1 - 0.1) * loss.mean() + 0.1 * (
             #     loss * torch.exp(-logvar) + logvar
@@ -271,12 +274,15 @@ def training(
                     ]
 
                     labels_val = batchdata[-1]
-                    val_label_list.append(labels_val)
+                    for x in labels_val:
+                        val_label_list.append(x)
                     labels_val = labels_val.to(cuda)
 
 
                     pred_val=net(inputs_rmol, inputs_pmol)
-                    val_pred_list.append(pred_val.cpu().numpy())
+                    pred_val_copy=pred_val.cpu().numpy()
+                    for x in val_pred_list:
+                        val_pred_list.append(x)
 
                     loss=loss_fn(pred_val,labels_val)
 
