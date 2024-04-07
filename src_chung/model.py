@@ -203,10 +203,8 @@ def training(
             labels = labels.to(cuda)
 
             pred= net(inputs_rmol, inputs_pmol)
-            pred_list.append(pred.cpu().numpy())
-
             loss = loss_fn(pred, labels)
-
+            pred_list.append(pred.detach().numpy())
             ##Uncertainty 
             # loss = (1 - 0.1) * loss.mean() + 0.1 * (
             #     loss * torch.exp(-logvar) + logvar
