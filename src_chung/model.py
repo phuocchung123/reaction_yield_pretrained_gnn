@@ -188,6 +188,8 @@ def training(
         start_time = time.time()
 
         train_loss_list = []
+        pred_list = []
+        label_list =[]
 
         for batchidx, batchdata in enumerate(train_loader):
             inputs_rmol = [b.to(cuda) for b in batchdata[:rmol_max_cnt]]
@@ -197,9 +199,11 @@ def training(
             ]
 
             labels = batchdata[-1]
+            label_list.append(labels)
             labels = labels.to(cuda)
 
             pred= net(inputs_rmol, inputs_pmol)
+            pred_list.append(pred.cpu().numpy())
 
             loss = loss_fn(pred, labels)
 
@@ -215,15 +219,24 @@ def training(
             train_loss = loss.detach().item()
             train_loss_list.append(train_loss)
 
+        result_train = [
+            accuracy_score(label_list, pred_list),
+            matthews_corrcoef(label_list, pred_list),
+        ]
+
         if (epoch + 1) % 1 == 0:
+
+            
             print(
-                "--- training epoch %d, lr %f, processed %d/%d, loss %.3f, time elapsed(min) %.2f"
+                "--- training epoch %d, lr %f, processed %d/%d, loss %.3f, accuracy %.3f, MCC %.3f, time elapsed(min) %.2f"
                 % (
                     epoch,
                     optimizer.param_groups[-1]["lr"],
                     train_size,
                     train_size,
                     np.mean(train_loss_list),
+                    result_train[0],
+                    result_train[1],
                     (time.time() - start_time) / 60,
                 )
             )
@@ -232,24 +245,56 @@ def training(
 
         # validation with test set
         if val_loader is not None and (epoch + 1) % val_monitor_epoch == 0:
+
+            batch_size = val_loader.batch_size
+
+            try:
+                rmol_max_cnt = val_loader.dataset.dataset.rmol_max_cnt
+                pmol_max_cnt = val_loader.dataset.dataset.pmol_max_cnt
+
+            except:
+                rmol_max_cnt = val_loader.dataset.rmol_max_cnt
+                pmol_max_cnt = val_loader.dataset.pmol_max_cnt
+
             net.eval()
-            MC_dropout(net)
+            val_loss_list=[]
 
-            val_y = val_loader.dataset.y[val_loader.dataset.indices]
-            val_y_pred = inference(
-                net,
-                val_loader,
-                n_forward_pass=n_forward_pass,
-            )
+            val_label_list = []
+            val_pred_list = []
+            # MC_dropout(net)
 
-            result = [
-                accuracy_score(val_y, val_y_pred),
-                matthews_corrcoef(val_y, val_y_pred),
-            ]
-            print(
-                "--- validation at epoch %d, processed %d, current accuracy %.3f MCC %.3f ---"
-                % (epoch, len(val_y), result[0], result[1])
-            )
+
+            with torch.no_grad():
+                for batchidx, batchdata in enumerate(val_loader):
+                    inputs_rmol = [b.to(cuda) for b in batchdata[:rmol_max_cnt]]
+                    inputs_pmol = [
+                        b.to(cuda)
+                        for b in batchdata[rmol_max_cnt : rmol_max_cnt + pmol_max_cnt]
+                    ]
+
+                    labels_val = batchdata[-1]
+                    val_label_list.append(labels_val)
+                    labels_val = labels_val.to(cuda)
+
+
+                    pred_val=net(inputs_rmol, inputs_pmol)
+                    val_pred_list.append(pred_val.cpu().numpy())
+
+                    loss=loss_fn(pred_val,labels_val)
+
+                    val_loss = loss.item()
+                    val_loss_list.append(val_loss)
+
+
+
+                result_val = [
+                    accuracy_score(val_label_list, val_pred_list),
+                    matthews_corrcoef(val_label_list, val_pred_list),
+                ]
+                print(
+                    "--- validation at epoch %d, processed %d, val_loss %.3f ,current val_accuracy %.3f val_MCC %.3f ---"
+                    % (epoch, sum(len(x) for x in val_label_list),np.mean(val_loss_list) ,result_val[0], result_val[1])
+                )
 
     print("training terminated at epoch %d" % epoch)
     torch.save(net.state_dict(), model_path)
@@ -274,7 +319,7 @@ def inference(
         pmol_max_cnt = test_loader.dataset.pmol_max_cnt
 
     net.eval()
-    MC_dropout(net)
+    # MC_dropout(net)
 
     pred_y = []
 
@@ -285,14 +330,8 @@ def inference(
                 b.to(cuda)
                 for b in batchdata[rmol_max_cnt : rmol_max_cnt + pmol_max_cnt]
             ]
+            pred=net(inputs_rmol, inputs_pmol)
 
-            pred_list = []
-
-            for _ in range(n_forward_pass):
-                pred = net(inputs_rmol, inputs_pmol)
-                pred_list.append(pred.cpu().numpy())
-
-            pred_y.append(np.array(pred_list).transpose())
-
+            pred_y.append(pred.cpu().numpy())
 
     return pred_y
