@@ -206,6 +206,7 @@ def training(
             pred= net(inputs_rmol, inputs_pmol)
             pred_copy=pred.detach().cpu().numpy()
             for x in pred_copy:
+                x=np.argmax(x,axis=1)
                 pred_list.append(x)
             loss = loss_fn(pred, labels)
             ##Uncertainty 
@@ -282,6 +283,7 @@ def training(
                     pred_val=net(inputs_rmol, inputs_pmol)
                     pred_val_copy=pred_val.cpu().numpy()
                     for x in val_pred_list:
+                        x=np.argmax(x,axis=1)
                         val_pred_list.append(x)
 
                     loss=loss_fn(pred_val,labels_val)
