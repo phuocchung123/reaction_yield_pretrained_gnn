@@ -204,7 +204,7 @@ def training(
 
             pred= net(inputs_rmol, inputs_pmol)
             loss = loss_fn(pred, labels)
-            pred_list.append(pred.detach().numpy())
+            pred_list.append(pred.detach().cpu().numpy())
             ##Uncertainty 
             # loss = (1 - 0.1) * loss.mean() + 0.1 * (
             #     loss * torch.exp(-logvar) + logvar
