@@ -188,8 +188,6 @@ def training(
         start_time = time.time()
 
         train_loss_list = []
-        pred_list = []
-        label_list =[]
 
         for batchidx, batchdata in enumerate(train_loader):
             inputs_rmol = [b.to(cuda) for b in batchdata[:rmol_max_cnt]]
@@ -199,16 +197,9 @@ def training(
             ]
 
             labels = batchdata[-1]
-            for x in labels:
-                label_list.append(x)
             labels = labels.to(cuda)
 
             pred= net(inputs_rmol, inputs_pmol)
-            pred_copy=pred.detach().cpu().numpy()
-            for x in pred_copy:
-                x=x.reshape(1,-1)
-                x=np.argmax(x)
-                pred_list.append(x)
             loss = loss_fn(pred, labels)
             ##Uncertainty 
             # loss = (1 - 0.1) * loss.mean() + 0.1 * (
@@ -222,24 +213,18 @@ def training(
             train_loss = loss.detach().item()
             train_loss_list.append(train_loss)
 
-        result_train = [
-            accuracy_score(label_list, pred_list),
-            matthews_corrcoef(label_list, pred_list),
-        ]
 
         if (epoch + 1) % 1 == 0:
 
             
             print(
-                "--- training epoch %d, lr %f, processed %d/%d, loss %.3f, accuracy %.3f, MCC %.3f, time elapsed(min) %.2f"
+                "--- training epoch %d, lr %f, processed %d/%d, loss %.3f, time elapsed(min) %.2f"
                 % (
                     epoch,
                     optimizer.param_groups[-1]["lr"],
                     train_size,
                     train_size,
                     np.mean(train_loss_list),
-                    result_train[0],
-                    result_train[1],
                     (time.time() - start_time) / 60,
                 )
             )
@@ -262,8 +247,6 @@ def training(
             net.eval()
             val_loss_list=[]
 
-            val_label_list = []
-            val_pred_list = []
             # MC_dropout(net)
 
 
@@ -276,18 +259,10 @@ def training(
                     ]
 
                     labels_val = batchdata[-1]
-                    for x in labels_val:
-                        x=x.reshape(1,-1)
-                        val_label_list.append(x)
                     labels_val = labels_val.to(cuda)
 
 
                     pred_val=net(inputs_rmol, inputs_pmol)
-                    pred_val_copy=pred_val.cpu().numpy()
-                    for x in val_pred_list:
-                        x=np.argmax(x)
-                        val_pred_list.append(x)
-
                     loss=loss_fn(pred_val,labels_val)
 
                     val_loss = loss.item()
@@ -295,13 +270,9 @@ def training(
 
 
 
-                result_val = [
-                    accuracy_score(val_label_list, val_pred_list),
-                    matthews_corrcoef(val_label_list, val_pred_list),
-                ]
                 print(
-                    "--- validation at epoch %d, processed %d, val_loss %.3f ,current val_accuracy %.3f val_MCC %.3f ---"
-                    % (epoch, sum(len(x) for x in val_label_list),np.mean(val_loss_list) ,result_val[0], result_val[1])
+                    "--- validation at epoch %d, val_loss %.3f ---"
+                    % (epoch, np.mean(val_loss_list))
                 )
 
     print("training terminated at epoch %d" % epoch)
