@@ -30,8 +30,8 @@ if __name__ == "__main__":
     torch.manual_seed(args.seed)
     torch.backends.cudnn.benchmark = False
 
-    if not os.path.exists("/kaggle/working/sample/model/finetuned/"):
-        os.makedirs("/kaggle/working/sample/model/finetuned/")
+    if not os.path.exists("../data_chung/model/finetuned/"):
+        os.makedirs("../data_chung/model/finetuned/")
 
 
     finetune(args)
