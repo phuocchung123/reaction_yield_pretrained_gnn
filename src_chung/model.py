@@ -188,6 +188,9 @@ def training(
         start_time = time.time()
 
         train_loss_list = []
+        targets=[]
+        preds=[]
+
 
         for batchidx, batchdata in enumerate(train_loader):
             inputs_rmol = [b.to(cuda) for b in batchdata[:rmol_max_cnt]]
@@ -197,9 +200,11 @@ def training(
             ]
 
             labels = batchdata[-1]
+            targets.extend(labels.tolist())
             labels = labels.to(cuda)
 
             pred= net(inputs_rmol, inputs_pmol)
+            preds.extend(torch.argmax(pred, dim=1).tolist())
             loss = loss_fn(pred, labels)
             ##Uncertainty 
             # loss = (1 - 0.1) * loss.mean() + 0.1 * (
@@ -213,18 +218,25 @@ def training(
             train_loss = loss.detach().item()
             train_loss_list.append(train_loss)
 
+            preds.extend(torch.argmax(pred, dim=1).tolist())
+
+        acc = accuracy_score(targets, preds)
+        mcc = matthews_corrcoef(targets, preds)
+
 
         if (epoch + 1) % 1 == 0:
 
             
             print(
-                "--- training epoch %d, lr %f, processed %d/%d, loss %.3f, time elapsed(min) %.2f"
+                "--- training epoch %d, lr %f, processed %d/%d, loss %.3f, acc %.3f, mcc %.3f, time elapsed(min) %.2f"
                 % (
                     epoch,
                     optimizer.param_groups[-1]["lr"],
                     train_size,
                     train_size,
                     np.mean(train_loss_list),
+                    acc,
+                    mcc,
                     (time.time() - start_time) / 60,
                 )
             )
