@@ -257,6 +257,8 @@ def training(
 
             net.eval()
             val_loss_list=[]
+            val_targets=[]
+            val_preds=[]
 
             # MC_dropout(net)
 
@@ -270,20 +272,25 @@ def training(
                     ]
 
                     labels_val = batchdata[-1]
+                    val_targets.extend(labels.tolist())
                     labels_val = labels_val.to(cuda)
 
 
                     pred_val=net(inputs_rmol, inputs_pmol)
+                    val_preds.extend(torch.argmax(pred, dim=1).tolist())    
                     loss=loss_fn(pred_val,labels_val)
 
                     val_loss = loss.item()
                     val_loss_list.append(val_loss)
 
+                val_acc = accuracy_score(val_targets, val_preds)
+                val_mcc = matthews_corrcoef(val_targets, val_preds)
+
 
 
                 print(
-                    "--- validation at epoch %d, val_loss %.3f ---"
-                    % (epoch, np.mean(val_loss_list))
+                    "--- validation at epoch %d, val_loss %.3f, val_acc %.3f, val_mcc %.3f ---"
+                    % (epoch, np.mean(val_loss_list),val_acc,val_mcc)
                 )
 
     print("training terminated at epoch %d" % epoch)

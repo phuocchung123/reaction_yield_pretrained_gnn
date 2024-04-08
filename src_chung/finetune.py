@@ -78,7 +78,7 @@ def finetune(args):
 
     # inference
 
-    test_y = test_loader.dataset.y[test_loader.dataset.indices]
+    test_y = test_loader.dataset.y
 
     test_y_pred = inference(
         net, test_loader,
