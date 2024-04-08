@@ -87,7 +87,7 @@ def finetune(args):
 
     result = [
         accuracy_score(test_y, test_y_pred),
-        mattews_corrcoef(test_y, test_y_pred),
+        matthews_corrcoef(test_y, test_y_pred),
     ]
 
     print("-- RESULT")
