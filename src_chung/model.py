@@ -218,7 +218,6 @@ def training(
             train_loss = loss.detach().item()
             train_loss_list.append(train_loss)
 
-            preds.extend(torch.argmax(pred, dim=1).tolist())
 
         acc = accuracy_score(targets, preds)
         mcc = matthews_corrcoef(targets, preds)
