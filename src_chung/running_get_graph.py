@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
 import json
-from get_reaction_data import get_graph_data
+from src_chung.get_reaction_data import get_graph_data
 
 data=pd.read_csv('../data_chung/schneider50k.tsv',sep='\t',index_col=0)
 

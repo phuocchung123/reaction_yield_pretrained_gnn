@@ -49,30 +49,34 @@ class MultiHeadAttention(nn.Module):
         batch_size = q.size(0)
 
         q = self.linear_q(q).view(batch_size, -1, self.num_heads, d_k)
+        # print('q ',q.size())
         k = self.linear_k(k).view(batch_size, -1, self.num_heads, d_k)
         v = self.linear_v(v).view(batch_size, -1, self.num_heads, d_v)
 
         q = q.transpose(1, 2)  # [b, h, q_len, d_k]
+        # print('q ',q.size())
         v = v.transpose(1, 2)  # [b, h, v_len, d_v]
         k = k.transpose(1, 2).transpose(2, 3)  # [b, h, d_k, k_len]
 
         # Scaled Dot-Product Attention.
         # Attention(Q, K, V) = softmax((QK^T)/sqrt(d_k))V
         q = q * self.scale
+        # print('q ',q.size())
         x = torch.matmul(q, k)  # [b, h, q_len, k_len]
         if attn_bias is not None:
             x = x + attn_bias
         x = torch.softmax(x, dim=3)
+        # print(x.size())
         #
         # Attention analyse
         #        csvwriter = csv.writer(open("attention.csv","a+",newline=""))
 
-        temp = x.cpu().numpy()
-        #        temp = temp.argmax(axis = 2)
-        temp = temp.mean(axis=2)
-#        print(temp.shape)
-        if temp.shape == (290,2,63):
-            np.save("attention.npy",temp)
+#         temp = x.cpu().detach().numpy()
+#         #        temp = temp.argmax(axis = 2)
+#         temp = temp.mean(axis=2)
+# #        print(temp.shape)
+#         if temp.shape == (290,2,63):
+#             np.save("attention.npy",temp)
 
 
         #        
@@ -80,12 +84,18 @@ class MultiHeadAttention(nn.Module):
         #        csvwriter.writerows(temp.tolist())
         x = self.att_dropout(x)
         x = x.matmul(v)  # [b, h, q_len, attn]
+        # print(x.size())
         
         x = x.transpose(1, 2).contiguous()  # [b, q_len, h, attn]
+        # print(x.size())
         x = x.view(batch_size, -1, self.num_heads * d_v)
-        
+        # print(x.size())
         x = self.output_layer(x)
+        # print(x.size())
         
+        # print(x.size())
+        # print(orig_q_size)
+        x=x.squeeze(1)
         assert x.size() == orig_q_size
         return x
 

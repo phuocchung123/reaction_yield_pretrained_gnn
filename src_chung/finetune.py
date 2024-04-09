@@ -1,13 +1,14 @@
 import numpy as np
+import torch
 import csv, os
 from torch.utils.data import DataLoader
 from dgl.data.utils import split_dataset
-from sklearn.metrics import accuracy_score, matthews_corrcoef
+from sklearn.metrics import accuracy_score, matthews_corrcoef, precision_score, recall_score,f1_score
 from scipy import stats
 
-from model import reactionMPNN, training, inference
-from dataset import GraphDataset
-from util import collate_reaction_graphs
+from src_chung.model import reactionMPNN, training, inference
+from src_chung.dataset import GraphDataset
+from src_chung.util import collate_reaction_graphs
 
 # data_id -> #data_id 1: Buchwald-Hartwig, #data_id 2: Suzuki-Miyaura, %data_id 3: out-of-sample test splits for Buchwald-Hartwig
 # split_id -> #data_id 1 & 2: 0-9, data_id 3: 1-4
@@ -76,23 +77,31 @@ def finetune(args):
     else:
         pass
 
-    # inference
-
+    # # inference
     test_y = test_loader.dataset.y
+    test_y=torch.argmax(torch.Tensor(test_y), dim=1).tolist()
+
 
     test_y_pred = inference(
         net, test_loader,
     )
+    # test_y_pred=torch.argmax(torch.Tensor(test_y_pred), dim=1).tolist()    
 
 
     result = [
         accuracy_score(test_y, test_y_pred),
         matthews_corrcoef(test_y, test_y_pred),
+        precision_score(test_y, test_y_pred, average="macro"),
+        precision_score(test_y, test_y_pred, average="micro"),
+        recall_score(test_y, test_y_pred, average="macro"),
+        recall_score(test_y, test_y_pred, average="micro"),
+        f1_score(test_y, test_y_pred, average="macro"),
+        f1_score(test_y, test_y_pred, average="micro"),
     ]
 
     print("-- RESULT")
     print("--- test size: %d" % (len(test_y)))
     print(
-        "--- Accuracy: %.3f, Mattews Correlation: %.3f"
-        % (result[0], result[1],)
+        "--- Accuracy: %.3f, Mattews Correlation: %.3f,\n precision_macro: %.3f, precision_micro: %.3f,\n recall_macro: %.3f, recall_micro: %.3f,\n f1_macro: %.3f, f1_micro: %.3f"
+        % (result[0], result[1],result[2],result[3],result[4],result[5],result[6],result[7])
     )

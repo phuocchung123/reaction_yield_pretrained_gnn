@@ -7,9 +7,11 @@ from torch.optim.lr_scheduler import MultiStepLR
 from dgl.nn.pytorch import GINEConv
 from dgl.nn.pytorch.glob import AvgPooling
 from sklearn.metrics import accuracy_score, matthews_corrcoef
+import seaborn as sns
+import matplotlib.pyplot as plt
 
-from util import MC_dropout
-from self_attention import EncoderLayer
+# from util import MC_dropout
+from src_chung.self_attention import EncoderLayer
 
 
 class linear_head(nn.Module):
@@ -124,7 +126,7 @@ class reactionMPNN(nn.Module):
         print("Successfully loaded pretrained model!")
 
         self.predict = nn.Sequential(
-            nn.Linear(2 * readout_feats, predict_hidden_feats),
+            nn.Linear(readout_feats, predict_hidden_feats),
             nn.PReLU(),
             nn.Dropout(prob_dropout),
             nn.Linear(predict_hidden_feats, predict_hidden_feats),
@@ -134,20 +136,19 @@ class reactionMPNN(nn.Module):
         )
 
         # Cross-Attention Module
-        # self.rea_attention_pro = EncoderLayer(128, 0.1, 0.1, 2)  # 注意力机制
-        # self.pro_attention_rea = EncoderLayer(128, 0.1, 0.1, 2)
+        # self.rea_attention_pro = EncoderLayer(1024, 0.1, 0.1, 2)  # 注意力机制
+        # self.pro_attention_rea = EncoderLayer(1024, 0.1, 0.1, 2)
 
     def forward(self, rmols, pmols):
         r_graph_feats = torch.sum(torch.stack([self.mpnn(mol) for mol in rmols]), 0)
         p_graph_feats = torch.sum(torch.stack([self.mpnn(mol) for mol in pmols]), 0)
         r_graph_feats_attetion=r_graph_feats
 
-        # r_graph_feats=self.rea_attention_pro(r_graph_feats, p_graph_feats)
-        # p_graph_feats=self.pro_attention_rea(p_graph_feats, r_graph_feats_attetion)
+        r_graph_feats=self.rea_attention_pro(r_graph_feats, p_graph_feats)
+        p_graph_feats=self.pro_attention_rea(p_graph_feats, r_graph_feats_attetion)
 
 
-
-        concat_feats = torch.cat([r_graph_feats, p_graph_feats], 1)
+        concat_feats = torch.sub(r_graph_feats, p_graph_feats)
         out = self.predict(concat_feats)
 
         return out
@@ -175,12 +176,19 @@ def training(
 
     loss_fn = nn.CrossEntropyLoss()
 
-    n_epochs = 10
+    n_epochs = 15
     optimizer = Adam(net.parameters(), lr=5e-4, weight_decay=1e-5)
 
     # lr_scheduler = MultiStepLR(
     #     optimizer, milestones=[400, 450], gamma=0.1, verbose=False
     # )
+
+    train_loss_all=[]
+    val_loss_all=[]
+    acc_all=[]
+    acc_all_val=[]
+    mcc_all=[]
+    mcc_all_val=[]
 
     for epoch in range(n_epochs):
         # training
@@ -221,18 +229,18 @@ def training(
 
         acc = accuracy_score(targets, preds)
         mcc = matthews_corrcoef(targets, preds)
+        train_loss_all.append(np.mean(train_loss_list))
+        acc_all.append(acc)
+        mcc_all.append(mcc)
 
 
         if (epoch + 1) % 1 == 0:
 
             
             print(
-                "--- training epoch %d, lr %f, processed %d/%d, loss %.3f, acc %.3f, mcc %.3f, time elapsed(min) %.2f"
+                "--- training epoch %d, loss %.3f, acc %.3f, mcc %.3f, time elapsed(min) %.2f"
                 % (
                     epoch,
-                    optimizer.param_groups[-1]["lr"],
-                    train_size,
-                    train_size,
                     np.mean(train_loss_list),
                     acc,
                     mcc,
@@ -272,12 +280,12 @@ def training(
                     ]
 
                     labels_val = batchdata[-1]
-                    val_targets.extend(labels.tolist())
+                    val_targets.extend(labels_val.tolist())
                     labels_val = labels_val.to(cuda)
 
 
                     pred_val=net(inputs_rmol, inputs_pmol)
-                    val_preds.extend(torch.argmax(pred, dim=1).tolist())    
+                    val_preds.extend(torch.argmax(pred_val, dim=1).tolist())    
                     loss=loss_fn(pred_val,labels_val)
 
                     val_loss = loss.item()
@@ -286,12 +294,29 @@ def training(
                 val_acc = accuracy_score(val_targets, val_preds)
                 val_mcc = matthews_corrcoef(val_targets, val_preds)
 
+                val_loss_all.append(np.mean(val_loss_list))
+                acc_all_val.append(val_acc)
+                mcc_all_val.append(val_mcc)
+
 
 
                 print(
                     "--- validation at epoch %d, val_loss %.3f, val_acc %.3f, val_mcc %.3f ---"
                     % (epoch, np.mean(val_loss_list),val_acc,val_mcc)
                 )
+
+    #visualize
+
+    # sns.set()
+    # fig, axes = plt.subplots(1, 3, figsize=(18, 5))
+    # sns.lineplot(data=train_loss_all, label='train', ax=axes[0]).set(title='Loss')
+    # sns.lineplot(data=val_loss_all, label='valid', ax=axes[0])
+    # # plot acc learning curves
+    # sns.lineplot(data=acc_all, label='train', ax=axes[1]).set(title='Accuracy')
+    # sns.lineplot(data=acc_all_val, label='valid', ax=axes[1])
+    # # plot mcc learning curves
+    # sns.lineplot(data=mcc_all, label='train', ax=axes[2]).set(title='Matthews Correlation Coefficient')
+    # sns.lineplot(data=mcc_all_val, label='valid', ax=axes[2])
 
     print("training terminated at epoch %d" % epoch)
     torch.save(net.state_dict(), model_path)
@@ -329,6 +354,8 @@ def inference(
             ]
             pred=net(inputs_rmol, inputs_pmol)
 
-            pred_y.append(pred.cpu().numpy())
+            # pred_y.append(pred.cpu().numpy())
+            pred_y.extend(torch.argmax(pred,dim=1).tolist())
+            # val_preds.extend(torch.argmax(pred_y, dim=1).tolist()) 
 
     return pred_y
