@@ -314,16 +314,16 @@ def training(
 
     #visualize
 
-    # sns.set()
-    # fig, axes = plt.subplots(1, 3, figsize=(18, 5))
-    # sns.lineplot(data=train_loss_all, label='train', ax=axes[0]).set(title='Loss')
-    # sns.lineplot(data=val_loss_all, label='valid', ax=axes[0])
-    # # plot acc learning curves
-    # sns.lineplot(data=acc_all, label='train', ax=axes[1]).set(title='Accuracy')
-    # sns.lineplot(data=acc_all_val, label='valid', ax=axes[1])
-    # # plot mcc learning curves
-    # sns.lineplot(data=mcc_all, label='train', ax=axes[2]).set(title='Matthews Correlation Coefficient')
-    # sns.lineplot(data=mcc_all_val, label='valid', ax=axes[2])
+    sns.set()
+    fig, axes = plt.subplots(1, 3, figsize=(18, 5))
+    sns.lineplot(data=train_loss_all, label='train', ax=axes[0]).set(title='Loss')
+    sns.lineplot(data=val_loss_all, label='valid', ax=axes[0])
+    # plot acc learning curves
+    sns.lineplot(data=acc_all, label='train', ax=axes[1]).set(title='Accuracy')
+    sns.lineplot(data=acc_all_val, label='valid', ax=axes[1])
+    # plot mcc learning curves
+    sns.lineplot(data=mcc_all, label='train', ax=axes[2]).set(title='Matthews Correlation Coefficient')
+    sns.lineplot(data=mcc_all_val, label='valid', ax=axes[2])
 
     print("training terminated at epoch %d" % epoch)
     # torch.save(net.state_dict(), model_path)
