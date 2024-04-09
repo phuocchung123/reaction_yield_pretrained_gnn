@@ -110,7 +110,7 @@ class reactionMPNN(nn.Module):
         self,
         node_in_feats,
         edge_in_feats,
-        pretrained_model_path,
+        pretrained_model_path=None,
         readout_feats=1024,
         predict_hidden_feats=512,
         prob_dropout=0.1,
@@ -118,15 +118,16 @@ class reactionMPNN(nn.Module):
         super(reactionMPNN, self).__init__()
 
         self.mpnn = GIN(node_in_feats, edge_in_feats)
-        state_dict = torch.load(
-            pretrained_model_path,
-            map_location='cuda:0',
-        )
-        self.mpnn.load_my_state_dict(state_dict)
-        print("Successfully loaded pretrained model!")
+        if pretrained_model_path is not None:
+            state_dict = torch.load(
+                pretrained_model_path,
+                map_location='cuda:0',
+            )
+            self.mpnn.load_my_state_dict(state_dict)
+            print("Successfully loaded pretrained model!")
 
         self.predict = nn.Sequential(
-            nn.Linear(readout_feats, predict_hidden_feats),
+            nn.Linear(2*readout_feats, predict_hidden_feats),
             nn.PReLU(),
             nn.Dropout(prob_dropout),
             nn.Linear(predict_hidden_feats, predict_hidden_feats),
@@ -144,11 +145,11 @@ class reactionMPNN(nn.Module):
         p_graph_feats = torch.sum(torch.stack([self.mpnn(mol) for mol in pmols]), 0)
         r_graph_feats_attetion=r_graph_feats
 
-        r_graph_feats=self.rea_attention_pro(r_graph_feats, p_graph_feats)
-        p_graph_feats=self.pro_attention_rea(p_graph_feats, r_graph_feats_attetion)
+        # r_graph_feats=self.rea_attention_pro(r_graph_feats, p_graph_feats)
+        # p_graph_feats=self.pro_attention_rea(p_graph_feats, r_graph_feats_attetion)
 
 
-        concat_feats = torch.sub(r_graph_feats, p_graph_feats)
+        concat_feats = torch.cat([r_graph_feats, p_graph_feats],1)
         out = self.predict(concat_feats)
 
         return out
@@ -176,7 +177,7 @@ def training(
 
     loss_fn = nn.CrossEntropyLoss()
 
-    n_epochs = 15
+    n_epochs = 2
     optimizer = Adam(net.parameters(), lr=5e-4, weight_decay=1e-5)
 
     # lr_scheduler = MultiStepLR(
@@ -190,6 +191,7 @@ def training(
     mcc_all=[]
     mcc_all_val=[]
 
+    best_val_loss =1e10
     for epoch in range(n_epochs):
         # training
         net.train()
@@ -291,8 +293,13 @@ def training(
                     val_loss = loss.item()
                     val_loss_list.append(val_loss)
 
+                if np.mean(val_loss_list) < best_val_loss:
+                    best_val_loss = np.mean(val_loss_list)
+                    torch.save(net.state_dict(), model_path)
+
                 val_acc = accuracy_score(val_targets, val_preds)
                 val_mcc = matthews_corrcoef(val_targets, val_preds)
+
 
                 val_loss_all.append(np.mean(val_loss_list))
                 acc_all_val.append(val_acc)
@@ -319,7 +326,7 @@ def training(
     # sns.lineplot(data=mcc_all_val, label='valid', ax=axes[2])
 
     print("training terminated at epoch %d" % epoch)
-    torch.save(net.state_dict(), model_path)
+    # torch.save(net.state_dict(), model_path)
 
     return net
 

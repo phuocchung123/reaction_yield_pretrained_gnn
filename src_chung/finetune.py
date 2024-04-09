@@ -81,7 +81,8 @@ def finetune(args):
     test_y = test_loader.dataset.y
     test_y=torch.argmax(torch.Tensor(test_y), dim=1).tolist()
 
-
+    net = reactionMPNN(node_dim, edge_dim).cuda()
+    net.load_state_dict(torch.load(model_path))
     test_y_pred = inference(
         net, test_loader,
     )
