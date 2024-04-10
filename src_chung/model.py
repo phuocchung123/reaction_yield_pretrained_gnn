@@ -9,6 +9,7 @@ from dgl.nn.pytorch.glob import AvgPooling
 from sklearn.metrics import accuracy_score, matthews_corrcoef
 import seaborn as sns
 import matplotlib.pyplot as plt
+from tqdm import tqdm
 
 # from util import MC_dropout
 from src_chung.self_attention import EncoderLayer
@@ -32,7 +33,7 @@ class GIN(nn.Module):
         self,
         node_in_feats,
         edge_in_feats,
-        depth=2,
+        depth=3,
         node_hid_feats=300,
         readout_feats=1024,
         dr=0.1,
@@ -127,7 +128,7 @@ class reactionMPNN(nn.Module):
             print("Successfully loaded pretrained model!")
 
         self.predict = nn.Sequential(
-            nn.Linear(2*readout_feats, predict_hidden_feats),
+            nn.Linear(readout_feats, predict_hidden_feats),
             nn.PReLU(),
             nn.Dropout(prob_dropout),
             nn.Linear(predict_hidden_feats, predict_hidden_feats),
@@ -137,8 +138,8 @@ class reactionMPNN(nn.Module):
         )
 
         # Cross-Attention Module
-        # self.rea_attention_pro = EncoderLayer(1024, 0.1, 0.1, 2)  # 注意力机制
-        # self.pro_attention_rea = EncoderLayer(1024, 0.1, 0.1, 2)
+        # self.rea_attention_pro = EncoderLayer(1024, 0.1, 0.1, 32)  # 注意力机制
+        # self.pro_attention_rea = EncoderLayer(1024, 0.1, 0.1, 32)
 
     def forward(self, rmols, pmols):
         r_graph_feats = torch.sum(torch.stack([self.mpnn(mol) for mol in rmols]), 0)
@@ -149,7 +150,7 @@ class reactionMPNN(nn.Module):
         # p_graph_feats=self.pro_attention_rea(p_graph_feats, r_graph_feats_attetion)
 
 
-        concat_feats = torch.cat([r_graph_feats, p_graph_feats],1)
+        concat_feats = torch.sub(r_graph_feats, p_graph_feats)
         out = self.predict(concat_feats)
 
         return out
@@ -177,7 +178,7 @@ def training(
 
     loss_fn = nn.CrossEntropyLoss()
 
-    n_epochs = 2
+    n_epochs = 20
     optimizer = Adam(net.parameters(), lr=5e-4, weight_decay=1e-5)
 
     # lr_scheduler = MultiStepLR(
@@ -202,7 +203,7 @@ def training(
         preds=[]
 
 
-        for batchidx, batchdata in enumerate(train_loader):
+        for batchdata in tqdm(train_loader, desc='Training'):
             inputs_rmol = [b.to(cuda) for b in batchdata[:rmol_max_cnt]]
             inputs_pmol = [
                 b.to(cuda)
@@ -274,7 +275,7 @@ def training(
 
 
             with torch.no_grad():
-                for batchidx, batchdata in enumerate(val_loader):
+                for batchdata in tqdm(val_loader, desc='Validating'):
                     inputs_rmol = [b.to(cuda) for b in batchdata[:rmol_max_cnt]]
                     inputs_pmol = [
                         b.to(cuda)
@@ -311,6 +312,7 @@ def training(
                     "--- validation at epoch %d, val_loss %.3f, val_acc %.3f, val_mcc %.3f ---"
                     % (epoch, np.mean(val_loss_list),val_acc,val_mcc)
                 )
+                print('\n'+'*'*100)
 
     #visualize
 
@@ -353,7 +355,7 @@ def inference(
     pred_y = []
 
     with torch.no_grad():
-        for batchidx, batchdata in enumerate(test_loader):
+        for batchdata in tqdm(test_loader, desc='Testing'):
             inputs_rmol = [b.to(cuda) for b in batchdata[:rmol_max_cnt]]
             inputs_pmol = [
                 b.to(cuda)
