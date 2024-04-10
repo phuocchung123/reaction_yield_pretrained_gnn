@@ -5,12 +5,15 @@ import numpy as np
 import pandas as pd
 import torch
 from rdkit import rdBase
+import warnings
+
 
 from src_chung.get_reaction_data import get_graph_data
 from src_chung.finetune import finetune
 
 rdBase.DisableLog("rdApp.error")
 rdBase.DisableLog("rdApp.warning")
+warnings.filterwarnings('ignore')
 
 if __name__ == "__main__":
     arg_parser = argparse.ArgumentParser()
