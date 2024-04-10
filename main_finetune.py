@@ -16,7 +16,7 @@ if __name__ == "__main__":
     arg_parser = argparse.ArgumentParser()
 
     arg_parser.add_argument(
-        "--graph_save_path", type=str, default="../data_chung/"
+        "--graph_save_path", type=str, default="./data_chung/"
     )
 
     arg_parser.add_argument("--seed", type=int, default=27407)
@@ -30,8 +30,8 @@ if __name__ == "__main__":
     torch.manual_seed(args.seed)
     torch.backends.cudnn.benchmark = False
 
-    if not os.path.exists("../data_chung/model/finetuned/"):
-        os.makedirs("../data_chung/model/finetuned/")
+    if not os.path.exists("./data_chung/model/finetuned/"):
+        os.makedirs("./data_chung/model/finetuned/")
 
 
     finetune(args)

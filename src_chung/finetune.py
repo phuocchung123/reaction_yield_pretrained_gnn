@@ -21,10 +21,7 @@ def finetune(args):
     use_saved = False
     model_path = "../data_chung/model/finetuned/model.pt"
 
-    data_train = GraphDataset(args.graph_save_path+'data_train.npz')
-    train_set, val_set = split_dataset(
-        data_train, [0.8,0.2], shuffle=False
-    )
+    train_set = GraphDataset(args.graph_save_path+'data_train.npz')
 
     train_loader = DataLoader(
         dataset=train_set,
@@ -34,15 +31,16 @@ def finetune(args):
         drop_last=True,
     )
 
+    valid_set = GraphDataset(args.graph_save_path+'data_valid.npz')
+
     val_loader = DataLoader(
-        dataset=val_set,
+        dataset=valid_set,
         batch_size=batch_size,
         shuffle=False,
         collate_fn=collate_reaction_graphs,
     )
 
-    data_test=GraphDataset(args.graph_save_path+'data_test.npz')
-    test_set = data_test
+    test_set=GraphDataset(args.graph_save_path+'data_test.npz')
     test_loader = DataLoader(
         dataset=test_set,
         batch_size=batch_size,
@@ -51,10 +49,11 @@ def finetune(args):
     )
 
 
+
     print("-- CONFIGURATIONS")
-    print("--- train/test: %d/%d" % (len(train_set), len(test_set)))
-    print("--- max no. reactants:", data_train.rmol_max_cnt)
-    print("--- max no. products:", data_train.pmol_max_cnt)
+    print("--- train/valid/test: %d/%d/%d" % (len(train_set),len(valid_set), len(test_set)))
+    print("--- max no. reactants_train, valid, test respectively:", train_set.rmol_max_cnt, valid_set.rmol_max_cnt, test_set.rmol_max_cnt)
+    print("--- max no. products_train, valid, test respectively:", train_set.pmol_max_cnt, valid_set.pmol_max_cnt, test_set.pmol_max_cnt)
     print("--- use_saved:", use_saved)
     print("--- model_path:", model_path)
 
@@ -63,8 +62,8 @@ def finetune(args):
 
     assert len(train_y) == len(train_set)
 
-    node_dim = data_train.rmol_node_attr[0].shape[1]
-    edge_dim = data_train.rmol_edge_attr[0].shape[1]
+    node_dim = train_set.rmol_node_attr[0].shape[1]
+    edge_dim = train_set.rmol_edge_attr[0].shape[1]
 
     pretrained_model_path = "../model/pretrained/" + "27407_pretrained_gnn.pt" 
 
