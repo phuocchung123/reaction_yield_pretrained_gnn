@@ -153,7 +153,7 @@ class reactionMPNN(nn.Module):
         concat_feats = torch.sub(r_graph_feats, p_graph_feats)
         out = self.predict(concat_feats)
 
-        return out
+        return out, concat_feats
 
 
 def training(
@@ -178,7 +178,7 @@ def training(
 
     loss_fn = nn.CrossEntropyLoss()
 
-    n_epochs = 2
+    n_epochs = 20
     optimizer = Adam(net.parameters(), lr=5e-4, weight_decay=1e-5)
 
     # lr_scheduler = MultiStepLR(
@@ -214,7 +214,7 @@ def training(
             targets.extend(labels.tolist())
             labels = labels.to(cuda)
 
-            pred= net(inputs_rmol, inputs_pmol)
+            pred,_= net(inputs_rmol, inputs_pmol)
             preds.extend(torch.argmax(pred, dim=1).tolist())
             loss = loss_fn(pred, labels)
             ##Uncertainty 
@@ -287,7 +287,7 @@ def training(
                     labels_val = labels_val.to(cuda)
 
 
-                    pred_val=net(inputs_rmol, inputs_pmol)
+                    pred_val,_=net(inputs_rmol, inputs_pmol)
                     val_preds.extend(torch.argmax(pred_val, dim=1).tolist())    
                     loss=loss_fn(pred_val,labels_val)
 
@@ -354,6 +354,7 @@ def inference(
     # MC_dropout(net)
 
     pred_y = []
+    feats=[]
 
     with torch.no_grad():
         for batchdata in tqdm(test_loader, desc='Testing'):
@@ -362,10 +363,11 @@ def inference(
                 b.to(cuda)
                 for b in batchdata[rmol_max_cnt : rmol_max_cnt + pmol_max_cnt]
             ]
-            pred=net(inputs_rmol, inputs_pmol)
+            pred,_=net(inputs_rmol, inputs_pmol)
 
             # pred_y.append(pred.cpu().numpy())
             pred_y.extend(torch.argmax(pred,dim=1).tolist())
+            feats.extend(_.cpu().numpy())
             # val_preds.extend(torch.argmax(pred_y, dim=1).tolist()) 
 
-    return pred_y
+    return pred_y,feats
