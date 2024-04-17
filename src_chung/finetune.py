@@ -38,6 +38,7 @@ def finetune(args):
         batch_size=batch_size,
         shuffle=False,
         collate_fn=collate_reaction_graphs,
+        drop_last=True,
     )
 
     test_set=GraphDataset(args.graph_save_path+'data_test.npz')
@@ -46,6 +47,7 @@ def finetune(args):
         batch_size=batch_size,
         shuffle=False,
         collate_fn=collate_reaction_graphs,
+        drop_last=True,
     )
 
 

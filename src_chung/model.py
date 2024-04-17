@@ -13,6 +13,7 @@ from tqdm import tqdm
 
 # from util import MC_dropout
 from src_chung.self_attention import EncoderLayer
+from src_chung.nt_xent import NTXentLoss
 
 
 class linear_head(nn.Module):
@@ -150,10 +151,10 @@ class reactionMPNN(nn.Module):
         p_graph_feats=self.pro_attention_rea(p_graph_feats, r_graph_feats_attetion)
 
 
-        concat_feats = torch.sub(r_graph_feats, p_graph_feats)
-        out = self.predict(concat_feats)
+        # concat_feats = torch.cat([r_graph_feats,p_graph_feats],1)
+        # out = self.predict(concat_feats)
 
-        return out, concat_feats
+        return r_graph_feats, p_graph_feats
 
 
 def training(
@@ -167,6 +168,7 @@ def training(
 ):
     train_size = train_loader.dataset.__len__()
     batch_size = train_loader.batch_size
+    nt_xent_criterion = NTXentLoss(cuda, batch_size)
 
     try:
         rmol_max_cnt = train_loader.dataset.dataset.rmol_max_cnt
@@ -202,6 +204,19 @@ def training(
         targets=[]
         preds=[]
 
+        # Generate two random numbers
+        # num1 = torch.rand(1).item()
+        # num2 = torch.rand(1).item()
+
+        # # Calculate the total
+        # total = num1 + num2
+
+        # # Calculate the percentage of each number
+        # weight1 = (num1 / total)
+        # weight2 = (num2 / total)
+        weight1=0.3
+        weight2=0.7
+
 
         for batchdata in tqdm(train_loader, desc='Training'):
             inputs_rmol = [b.to(cuda) for b in batchdata[:rmol_max_cnt]]
@@ -214,9 +229,14 @@ def training(
             targets.extend(labels.tolist())
             labels = labels.to(cuda)
 
-            pred,_= net(inputs_rmol, inputs_pmol)
+            r_rep,p_rep= net(inputs_rmol, inputs_pmol)
+            loss_sc=nt_xent_criterion(r_rep, p_rep)
+
+            pred = net.predict(torch.sub(r_rep,p_rep))
             preds.extend(torch.argmax(pred, dim=1).tolist())
-            loss = loss_fn(pred, labels)
+            loss_ce = loss_fn(pred, labels)
+            loss=weight1*loss_ce+weight2*loss_sc
+
             ##Uncertainty 
             # loss = (1 - 0.1) * loss.mean() + 0.1 * (
             #     loss * torch.exp(-logvar) + logvar
@@ -241,13 +261,15 @@ def training(
 
             
             print(
-                "--- training epoch %d, loss %.3f, acc %.3f, mcc %.3f, time elapsed(min) %.2f"
+                "--- training epoch %d, loss %.3f, acc %.3f, mcc %.3f, time elapsed(min) %.2f, weight1 %.3f, weight2 %.3f---"
                 % (
                     epoch,
                     np.mean(train_loss_list),
                     acc,
                     mcc,
                     (time.time() - start_time) / 60,
+                    weight1,
+                    weight2,
                 )
             )
 
@@ -287,9 +309,13 @@ def training(
                     labels_val = labels_val.to(cuda)
 
 
-                    pred_val,_=net(inputs_rmol, inputs_pmol)
+                    r_rep,p_rep=net(inputs_rmol, inputs_pmol)
+                    loss_sc=nt_xent_criterion(r_rep, p_rep)
+                    pred_val = net.predict(torch.sub(r_rep,p_rep))
                     val_preds.extend(torch.argmax(pred_val, dim=1).tolist())    
-                    loss=loss_fn(pred_val,labels_val)
+                    loss_ce=loss_fn(pred_val,labels_val)
+
+                    loss=weight1*loss_ce+weight2*loss_sc
 
                     val_loss = loss.item()
                     val_loss_list.append(val_loss)
@@ -326,6 +352,7 @@ def training(
     # plot mcc learning curves
     sns.lineplot(data=mcc_all, label='train', ax=axes[2]).set(title='Matthews Correlation Coefficient')
     sns.lineplot(data=mcc_all_val, label='valid', ax=axes[2])
+
     plt.show()
 
     print("training terminated at epoch %d" % epoch)
@@ -354,7 +381,6 @@ def inference(
     # MC_dropout(net)
 
     pred_y = []
-    feats=[]
 
     with torch.no_grad():
         for batchdata in tqdm(test_loader, desc='Testing'):
@@ -363,11 +389,13 @@ def inference(
                 b.to(cuda)
                 for b in batchdata[rmol_max_cnt : rmol_max_cnt + pmol_max_cnt]
             ]
-            pred,_=net(inputs_rmol, inputs_pmol)
+            r_rep,p_rep= net(inputs_rmol, inputs_pmol)
+
+            pred = net.predict(torch.sub(r_rep,p_rep))
+
 
             # pred_y.append(pred.cpu().numpy())
             pred_y.extend(torch.argmax(pred,dim=1).tolist())
-            feats.extend(_.cpu().numpy())
             # val_preds.extend(torch.argmax(pred_y, dim=1).tolist()) 
 
-    return pred_y,feats
+    return pred_y
