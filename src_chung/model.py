@@ -169,6 +169,7 @@ def training(
     train_size = train_loader.dataset.__len__()
     batch_size = train_loader.batch_size
     nt_xent_criterion = NTXentLoss(cuda, batch_size)
+    
 
     try:
         rmol_max_cnt = train_loader.dataset.dataset.rmol_max_cnt
@@ -180,12 +181,9 @@ def training(
 
     loss_fn = nn.CrossEntropyLoss()
 
-    n_epochs = 20
+    n_epochs = 2
     optimizer = Adam(net.parameters(), lr=5e-4, weight_decay=1e-5)
 
-    # lr_scheduler = MultiStepLR(
-    #     optimizer, milestones=[400, 450], gamma=0.1, verbose=False
-    # )
 
     train_loss_all=[]
     val_loss_all=[]
@@ -195,28 +193,52 @@ def training(
     mcc_all_val=[]
 
     best_val_loss =1e10
+    best_loss=1e10
+    net_contra = net
     for epoch in range(n_epochs):
         # training
+        net_contra.train()
+        start_time = time.time()
+        train_loss_contra_list = []
+
+        inputs_rmol=[]
+        inputs_pmol=[]
+        for batchdata in tqdm(train_loader, desc='Training_contra'):
+            input_rmol = [b.to(cuda) for b in batchdata[:rmol_max_cnt]]
+            input_pmol = [
+                b.to(cuda)
+                for b in batchdata[rmol_max_cnt : rmol_max_cnt + pmol_max_cnt]
+            ]
+            inputs_rmol.extend(input_rmol)
+            inputs_pmol.extend(input_pmol)
+        r_rep,p_rep= net_contra(inputs_rmol, inputs_pmol)
+        loss_sc=nt_xent_criterion(r_rep, p_rep)
+
+        optimizer.zero_grad()
+        loss_sc.backward()
+        optimizer.step()
+
+        train_loss_contra = loss_sc.detach().item()
+        train_loss_contra_list.append(train_loss_contra)
+
+        print("--- training epoch %d, loss %.3f, time elapsed(min) %.2f---"
+            % (epoch, np.mean(train_loss_contra_list), (time.time() - start_time) / 60))
+        
+
+        if np.mean(train_loss_contra_list) < best_loss:
+            best_loss = np.mean(train_loss_contra_list)
+            net = net_contra
+    print('\n'+'*'*100)
+
+    for epoch in range(n_epochs):
+        # training
+
         net.train()
         start_time = time.time()
 
         train_loss_list = []
         targets=[]
         preds=[]
-
-        # Generate two random numbers
-        # num1 = torch.rand(1).item()
-        # num2 = torch.rand(1).item()
-
-        # # Calculate the total
-        # total = num1 + num2
-
-        # # Calculate the percentage of each number
-        # weight1 = (num1 / total)
-        # weight2 = (num2 / total)
-        weight1=0.3
-        weight2=0.7
-
 
         for batchdata in tqdm(train_loader, desc='Training'):
             inputs_rmol = [b.to(cuda) for b in batchdata[:rmol_max_cnt]]
@@ -230,17 +252,11 @@ def training(
             labels = labels.to(cuda)
 
             r_rep,p_rep= net(inputs_rmol, inputs_pmol)
-            loss_sc=nt_xent_criterion(r_rep, p_rep)
 
             pred = net.predict(torch.sub(r_rep,p_rep))
             preds.extend(torch.argmax(pred, dim=1).tolist())
-            loss_ce = loss_fn(pred, labels)
-            loss=weight1*loss_ce+weight2*loss_sc
+            loss= loss_fn(pred, labels)
 
-            ##Uncertainty 
-            # loss = (1 - 0.1) * loss.mean() + 0.1 * (
-            #     loss * torch.exp(-logvar) + logvar
-            # ).mean()
 
             optimizer.zero_grad()
             loss.backward()
@@ -261,19 +277,16 @@ def training(
 
             
             print(
-                "--- training epoch %d, loss %.3f, acc %.3f, mcc %.3f, time elapsed(min) %.2f, weight1 %.3f, weight2 %.3f---"
+                "--- training epoch %d, loss %.3f, acc %.3f, mcc %.3f, time elapsed(min) %.2f---"
                 % (
                     epoch,
                     np.mean(train_loss_list),
                     acc,
                     mcc,
                     (time.time() - start_time) / 60,
-                    weight1,
-                    weight2,
                 )
             )
 
-        # lr_scheduler.step()
 
         # validation with test set
         if val_loader is not None and (epoch + 1) % val_monitor_epoch == 0:
@@ -293,8 +306,6 @@ def training(
             val_targets=[]
             val_preds=[]
 
-            # MC_dropout(net)
-
 
             with torch.no_grad():
                 for batchdata in tqdm(val_loader, desc='Validating'):
@@ -310,12 +321,10 @@ def training(
 
 
                     r_rep,p_rep=net(inputs_rmol, inputs_pmol)
-                    loss_sc=nt_xent_criterion(r_rep, p_rep)
                     pred_val = net.predict(torch.sub(r_rep,p_rep))
                     val_preds.extend(torch.argmax(pred_val, dim=1).tolist())    
-                    loss_ce=loss_fn(pred_val,labels_val)
+                    loss=loss_fn(pred_val,labels_val)
 
-                    loss=weight1*loss_ce+weight2*loss_sc
 
                     val_loss = loss.item()
                     val_loss_list.append(val_loss)
@@ -342,18 +351,18 @@ def training(
 
     #visualize
 
-    sns.set()
-    fig, axes = plt.subplots(1, 3, figsize=(18, 5))
-    sns.lineplot(data=train_loss_all, label='train', ax=axes[0]).set(title='Loss')
-    sns.lineplot(data=val_loss_all, label='valid', ax=axes[0])
-    # plot acc learning curves
-    sns.lineplot(data=acc_all, label='train', ax=axes[1]).set(title='Accuracy')
-    sns.lineplot(data=acc_all_val, label='valid', ax=axes[1])
-    # plot mcc learning curves
-    sns.lineplot(data=mcc_all, label='train', ax=axes[2]).set(title='Matthews Correlation Coefficient')
-    sns.lineplot(data=mcc_all_val, label='valid', ax=axes[2])
+    # sns.set()
+    # fig, axes = plt.subplots(1, 3, figsize=(18, 5))
+    # sns.lineplot(data=train_loss_all, label='train', ax=axes[0]).set(title='Loss')
+    # sns.lineplot(data=val_loss_all, label='valid', ax=axes[0])
+    # # plot acc learning curves
+    # sns.lineplot(data=acc_all, label='train', ax=axes[1]).set(title='Accuracy')
+    # sns.lineplot(data=acc_all_val, label='valid', ax=axes[1])
+    # # plot mcc learning curves
+    # sns.lineplot(data=mcc_all, label='train', ax=axes[2]).set(title='Matthews Correlation Coefficient')
+    # sns.lineplot(data=mcc_all_val, label='valid', ax=axes[2])
 
-    plt.show()
+    # plt.show()
 
     print("training terminated at epoch %d" % epoch)
     # torch.save(net.state_dict(), model_path)
