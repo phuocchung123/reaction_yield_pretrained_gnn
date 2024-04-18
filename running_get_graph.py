@@ -5,6 +5,9 @@ from src_chung.get_reaction_data import get_graph_data
 from sklearn.model_selection import train_test_split
 from rxnmapper import RXNMapper
 from tqdm import tqdm
+import warnings
+
+warnings.filterwarnings('ignore')
 
 
 data=pd.read_csv('./data_chung/schneider50k.tsv',sep='\t',index_col=0)
