@@ -2,6 +2,7 @@ import time
 import numpy as np
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 from torch.optim import Adam
 from torch.optim.lr_scheduler import MultiStepLR
 from dgl.nn.pytorch import GINEConv
@@ -199,27 +200,31 @@ def training(
         # training
         net_contra.train()
         start_time = time.time()
-        train_loss_contra_list = []
 
-        inputs_rmol=[]
-        inputs_pmol=[]
+        # inputs_rmol=[]
+        # inputs_pmol=[]
+        train_loss_contra_list=[]
         for batchdata in tqdm(train_loader, desc='Training_contra'):
-            input_rmol = [b.to(cuda) for b in batchdata[:rmol_max_cnt]]
-            input_pmol = [
+            inputs_rmol = [b.to(cuda) for b in batchdata[:rmol_max_cnt]]
+            inputs_pmol = [
                 b.to(cuda)
                 for b in batchdata[rmol_max_cnt : rmol_max_cnt + pmol_max_cnt]
             ]
-            inputs_rmol.extend(input_rmol)
-            inputs_pmol.extend(input_pmol)
-        r_rep,p_rep= net_contra(inputs_rmol, inputs_pmol)
-        loss_sc=nt_xent_criterion(r_rep, p_rep)
+            # inputs_rmol.extend(input_rmol)
+            # inputs_pmol.extend(input_pmol)
+        
+            r_rep,p_rep= net_contra(inputs_rmol, inputs_pmol)
 
-        optimizer.zero_grad()
-        loss_sc.backward()
-        optimizer.step()
+            r_rep=F.normalize(r_rep, dim=1)
+            p_rep=F.normalize(p_rep, dim=1)
+            loss_sc=nt_xent_criterion(r_rep, p_rep)
 
-        train_loss_contra = loss_sc.detach().item()
-        train_loss_contra_list.append(train_loss_contra)
+            optimizer.zero_grad()
+            loss_sc.backward()
+            optimizer.step()
+
+            train_loss_contra = loss_sc.detach().item()
+            train_loss_contra_list.append(train_loss_contra)
 
         print("--- training epoch %d, loss %.3f, time elapsed(min) %.2f---"
             % (epoch, np.mean(train_loss_contra_list), (time.time() - start_time) / 60))
