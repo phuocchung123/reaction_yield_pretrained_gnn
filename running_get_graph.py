@@ -20,20 +20,20 @@ def to_categorical(y, num_classes):
     return np.eye(num_classes, dtype='uint8')[y]
 
 
-rsmi_list=data['rxn'].values
+rsmi_list=data['original_rxn'].values
 rmol_max_cnt = np.max([smi.split(">>")[0].count(".") + 1 for smi in rsmi_list])
 pmol_max_cnt = np.max([smi.split(">>")[1].count(".") + 1 for smi in rsmi_list])
 
 
 #get_data_train
-rsmi_list_train=data_train['rxn'].values
+rsmi_list_train=data_train['original_rxn'].values
 y_list_train=data_train['y'].values
 y_list_train=to_categorical(y_list_train, 50)
 filename_train='./data_chung/data_train.npz'
 get_graph_data(rsmi_list_train,y_list_train,filename_train,rmol_max_cnt,pmol_max_cnt)
 
 #get_data_valid
-rsmi_list_valid=data_valid['rxn'].values
+rsmi_list_valid=data_valid['original_rxn'].values
 y_list_valid=data_valid['y'].values
 y_list_valid=to_categorical(y_list_valid, 50)
 filename_valid='./data_chung/data_valid.npz'
@@ -41,7 +41,7 @@ get_graph_data(rsmi_list_valid,y_list_valid,filename_valid,rmol_max_cnt,pmol_max
 
 #get_data_test
 data_test=data[data['split']=='test']
-rsmi_list_test=data_test['rxn'].values
+rsmi_list_test=data_test['original_rxn'].values
 y_list_test=data_test['y'].values
 y_list_test=to_categorical(y_list_test, 50)
 filename_test='./data_chung/data_test.npz'
