@@ -12,19 +12,30 @@ warnings.filterwarnings('ignore')
 
 data=pd.read_csv('./data_chung/schneider50k.tsv',sep='\t',index_col=0)
 
-rxnmapper = RXNMapper()
-lst=[]
-lst_non_idx=[]
-for idx,i in tqdm(enumerate(data['rxn'].values),desc='Running_RXNMapper'):
-    try:
-        res=rxnmapper.get_attention_guided_atom_maps([i])
-        res=res[0]['mapped_rxn']
-        lst.append(res)
-    except:
-        lst_non_idx.append(idx)
+# rxnmapper = RXNMapper()
+# lst=[]
+# lst_non_idx=[]
+# for idx,i in tqdm(enumerate(data['rxn'].values),desc='Running_RXNMapper'):
+#     try:
+#         res=rxnmapper.get_attention_guided_atom_maps([i])
+#         res=res[0]['mapped_rxn']
+#         lst.append(res)
+#     except:
+#         lst_non_idx.append(idx)
 
-data.drop(lst_non_idx,inplace=True)
-data['rxn_new']=lst
+# data.drop(lst_non_idx,inplace=True)
+# data['rxn_new']=lst
+
+# focus on 1 precusor and 1 product
+def new_smi_react(smi):
+    react,product=smi.split('>>')
+    reat_lst=react.split('.')
+    pro_lst=product.split('.')
+    idx_longest_react=np.argmax([len(r) for r in reat_lst])
+    idx_longest_product=np.argmax([len(p) for p in pro_lst])
+    new_react=reat_lst[idx_longest_react]+'>>'+pro_lst[idx_longest_product]
+    return new_react
+data['new_rxn']=data['rxn'].apply(new_smi_react)
 
 
 # Transfer from rxn_class to class
@@ -40,20 +51,20 @@ def to_categorical(y, num_classes):
     return np.eye(num_classes, dtype='uint8')[y]
 
 
-rsmi_list=data['rxn_new'].values
+rsmi_list=data['new_rxn'].values
 rmol_max_cnt = np.max([smi.split(">>")[0].count(".") + 1 for smi in rsmi_list])
 pmol_max_cnt = np.max([smi.split(">>")[1].count(".") + 1 for smi in rsmi_list])
 
 
 #get_data_train
-rsmi_list_train=data_train['rxn_new'].values
+rsmi_list_train=data_train['new_rxn'].values
 y_list_train=data_train['y'].values
 y_list_train=to_categorical(y_list_train, 50)
 filename_train='./data_chung/data_train.npz'
 get_graph_data(rsmi_list_train,y_list_train,filename_train,rmol_max_cnt,pmol_max_cnt)
 
 #get_data_valid
-rsmi_list_valid=data_valid['rxn_new'].values
+rsmi_list_valid=data_valid['new_rxn'].values
 y_list_valid=data_valid['y'].values
 y_list_valid=to_categorical(y_list_valid, 50)
 filename_valid='./data_chung/data_valid.npz'
@@ -61,7 +72,7 @@ get_graph_data(rsmi_list_valid,y_list_valid,filename_valid,rmol_max_cnt,pmol_max
 
 #get_data_test
 data_test=data[data['split']=='test']
-rsmi_list_test=data_test['rxn_new'].values
+rsmi_list_test=data_test['new_rxn'].values
 y_list_test=data_test['y'].values
 y_list_test=to_categorical(y_list_test, 50)
 filename_test='./data_chung/data_test.npz'
