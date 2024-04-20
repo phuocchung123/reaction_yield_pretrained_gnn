@@ -5,6 +5,8 @@ from torch.utils.data import DataLoader
 from dgl.data.utils import split_dataset
 from sklearn.metrics import accuracy_score, matthews_corrcoef, precision_score, recall_score,f1_score
 from scipy import stats
+import seaborn as sns
+import matplotlib.pyplot as plt
 
 from src_chung.model import reactionMPNN, training, inference
 from src_chung.dataset import GraphDataset
@@ -47,7 +49,6 @@ def finetune(args):
         batch_size=batch_size,
         shuffle=False,
         collate_fn=collate_reaction_graphs,
-        drop_last=True,
     )
 
 
@@ -73,7 +74,7 @@ def finetune(args):
 
     if use_saved == False:
         print("-- TRAINING")
-        net = training(net, train_loader,val_loader, model_path)
+        net,train_loss,val_loss,acc,val_acc,mcc,val_mcc = training(net, train_loader,val_loader, model_path)
 
     else:
         pass
@@ -107,3 +108,16 @@ def finetune(args):
         "--- Accuracy: %.3f, Mattews Correlation: %.3f,\n precision_macro: %.3f, precision_micro: %.3f,\n recall_macro: %.3f, recall_micro: %.3f,\n f1_macro: %.3f, f1_micro: %.3f"
         % (result[0], result[1],result[2],result[3],result[4],result[5],result[6],result[7])
     )
+
+    sns.set()
+    fig, axes = plt.subplots(1, 3, figsize=(18, 5))
+    sns.lineplot(data=train_loss, label='train', ax=axes[0]).set(title='Loss')
+    sns.lineplot(data=val_loss, label='valid', ax=axes[0])
+    # plot acc learning curves
+    sns.lineplot(data=acc, label='train', ax=axes[1]).set(title='Accuracy')
+    sns.lineplot(data=val_acc, label='valid', ax=axes[1])
+    # plot mcc learning curves
+    sns.lineplot(data=mcc, label='train', ax=axes[2]).set(title='Matthews Correlation Coefficient')
+    sns.lineplot(data=val_mcc, label='valid', ax=axes[2])
+
+    plt.show()
