@@ -181,7 +181,7 @@ def training(
     print('rmol_max_cnt:', rmol_max_cnt, '\n pmol_max_cnt:', pmol_max_cnt)
 
     loss_fn = nn.CrossEntropyLoss()
-    n_epochs = 20
+    n_epochs = 50
     optimizer = Adam(net.parameters(), lr=5e-4, weight_decay=1e-5)
 
 
@@ -196,7 +196,7 @@ def training(
     best_val_loss =1e10
     # best_loss=1e10
     # net_contra = net
-    # for epoch in range(n_epochs):
+    # for epoch in range(15):
     #     # training
     #     net_contra.train()
     #     start_time = time.time()
@@ -245,9 +245,11 @@ def training(
         targets=[]
         preds=[]
 
-        weight_ce=torch.rand(1).item()
-        weight_sc=1-weight_ce
-        weight_sc_list.append(weight_sc)
+        # # weight_ce=torch.rand(1).item()
+        # # weight_sc=1-weight_ce
+        # # weight_sc_list.append(weight_sc)
+        # weight_ce=0.5
+        # weight_sc=0.5
 
         for batchdata in tqdm(train_loader, desc='Training'):
             inputs_rmol = [b.to(cuda) for b in batchdata[:rmol_max_cnt]]
@@ -262,16 +264,16 @@ def training(
 
             r_rep,p_rep= net(inputs_rmol, inputs_pmol)
 
-            r_rep_contra=F.normalize(r_rep, dim=1)
-            p_rep_contra=F.normalize(p_rep, dim=1)
-            loss_sc=nt_xent_criterion(r_rep_contra, p_rep_contra)
+            # r_rep_contra=F.normalize(r_rep, dim=1)
+            # p_rep_contra=F.normalize(p_rep, dim=1)
+            # loss_sc=nt_xent_criterion(r_rep_contra, p_rep_contra)
 
             pred = net.predict(torch.sub(r_rep,p_rep))
             preds.extend(torch.argmax(pred, dim=1).tolist())
-            loss_ce= loss_fn(pred, labels)
+            loss= loss_fn(pred, labels)
 
 
-            loss = weight_ce*loss_ce+weight_sc*loss_sc
+            # loss = weight_ce*loss_ce+weight_sc*loss_sc
 
 
             optimizer.zero_grad()
@@ -293,15 +295,13 @@ def training(
 
             
             print(
-                "--- training epoch %d, loss %.3f, acc %.3f, mcc %.3f, time elapsed(min) %.2f,weight_ce %.3f,weight_sc %.3f---"
+                "--- training epoch %d, loss %.3f, acc %.3f, mcc %.3f, time elapsed(min) %.2f---"
                 % (
                     epoch,
                     np.mean(train_loss_list),
                     acc,
                     mcc,
                     (time.time() - start_time) / 60,
-                    weight_ce,
-                    weight_sc
                 )
             )
 
@@ -373,7 +373,7 @@ def training(
 
     print("training terminated at epoch %d" % epoch)
 
-    return net,train_loss_all, val_loss_all, acc_all, mcc_all, acc_all_val, mcc_all_val,weight_sc_list
+    return net,train_loss_all, val_loss_all, acc_all, mcc_all, acc_all_val, mcc_all_val
 
 
 def inference(
