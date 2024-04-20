@@ -12,30 +12,35 @@ warnings.filterwarnings('ignore')
 
 data=pd.read_csv('./data_chung/schneider50k.tsv',sep='\t',index_col=0)
 
-# rxnmapper = RXNMapper()
-# lst=[]
-# lst_non_idx=[]
-# for idx,i in tqdm(enumerate(data['rxn'].values),desc='Running_RXNMapper'):
-#     try:
-#         res=rxnmapper.get_attention_guided_atom_maps([i])
-#         res=res[0]['mapped_rxn']
-#         lst.append(res)
-#     except:
-#         lst_non_idx.append(idx)
-
-# data.drop(lst_non_idx,inplace=True)
-# data['rxn_new']=lst
-
-# focus on 1 precusor and 1 product
 def new_smi_react(smi):
-    react,product=smi.split('>>')
-    reat_lst=react.split('.')
-    pro_lst=product.split('.')
-    idx_longest_react=np.argmax([len(r) for r in reat_lst])
-    idx_longest_product=np.argmax([len(p) for p in pro_lst])
-    new_react=reat_lst[idx_longest_react]+'>>'+pro_lst[idx_longest_product]
+    rxnmapper = RXNMapper()
+    error_smi=[]
+    try:
+        mapped_smi=rxnmapper.get_attention_guided_atom_maps([smi])[0]['mapped_rxn']
+    except:
+        error_smi.append(smi)
+    precusor,product=smi.split('>>')
+    precusor1,product1=mapped_smi.split('>>')
+
+    # Choose mapped precusor
+    ele_react=precusor.split('.')
+    ele_react1=precusor1.split('.')
+    precusor_main=[i for i in ele_react if i not in ele_react1]
+    precusor_str='.'.join(precusor_main)
+    reagent=[i for i in ele_react if i in ele_react1]
+
+    # Choose mapped product
+    ele_pro=product.split('.')
+    ele_pro1=product1.split('.')
+    product_main=[i for i in ele_pro if i not in ele_pro1]
+    product_str='.'.join(product_main)
+    
+    new_react=precusor_str+'>>'+product_str
+
     return new_react
+
 data['new_rxn']=data['rxn'].apply(new_smi_react)
+data=data.dropna(subset=['new_rxn'])
 
 
 # Transfer from rxn_class to class
