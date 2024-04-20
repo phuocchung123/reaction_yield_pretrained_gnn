@@ -190,6 +190,7 @@ def training(
     acc_all_val=[]
     mcc_all=[]
     mcc_all_val=[]
+    weight_sc_list=[]
 
     best_val_loss =1e10
     # best_loss=1e10
@@ -264,8 +265,10 @@ def training(
             preds.extend(torch.argmax(pred, dim=1).tolist())
             loss_ce= loss_fn(pred, labels)
 
-            weight=torch.rand(1)
-            loss = (1-weight)*loss_ce+weight*loss_sc
+            weight_ce=torch.rand(1).item()
+            weight_sc=1-weight_ce
+            weight_sc_list.append(weight_sc)
+            loss = weight_ce*loss_ce+weight_sc*loss_sc
 
 
             optimizer.zero_grad()
@@ -287,13 +290,15 @@ def training(
 
             
             print(
-                "--- training epoch %d, loss %.3f, acc %.3f, mcc %.3f, time elapsed(min) %.2f---"
+                "--- training epoch %d, loss %.3f, acc %.3f, mcc %.3f, time elapsed(min) %.2f,weight_ce %.3f,weight_sc %.3f---"
                 % (
                     epoch,
                     np.mean(train_loss_list),
                     acc,
                     mcc,
                     (time.time() - start_time) / 60,
+                    weight_ce,
+                    weight_sc
                 )
             )
 
@@ -365,7 +370,7 @@ def training(
 
     print("training terminated at epoch %d" % epoch)
 
-    return net,train_loss_all, val_loss_all, acc_all, mcc_all, acc_all_val, mcc_all_val
+    return net,train_loss_all, val_loss_all, acc_all, mcc_all, acc_all_val, mcc_all_val,weight_sc_list
 
 
 def inference(

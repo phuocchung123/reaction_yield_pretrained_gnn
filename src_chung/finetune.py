@@ -74,7 +74,7 @@ def finetune(args):
 
     if use_saved == False:
         print("-- TRAINING")
-        net,train_loss,val_loss,acc,val_acc,mcc,val_mcc = training(net, train_loader,val_loader, model_path)
+        net,train_loss,val_loss,acc,val_acc,mcc,val_mcc,weight_sc = training(net, train_loader,val_loader, model_path)
 
     else:
         pass
@@ -113,9 +113,11 @@ def finetune(args):
     fig, axes = plt.subplots(1, 3, figsize=(18, 5))
     sns.lineplot(data=train_loss, label='train', ax=axes[0]).set(title='Loss')
     sns.lineplot(data=val_loss, label='valid', ax=axes[0])
+    
     # plot acc learning curves
     sns.lineplot(data=acc, label='train', ax=axes[1]).set(title='Accuracy')
     sns.lineplot(data=val_acc, label='valid', ax=axes[1])
+    sns.lineplot(data=weight_sc, label='weight_sc', ax=axes[0])
     # plot mcc learning curves
     sns.lineplot(data=mcc, label='train', ax=axes[2]).set(title='Matthews Correlation Coefficient')
     sns.lineplot(data=val_mcc, label='valid', ax=axes[2])
