@@ -244,6 +244,10 @@ def training(
         targets=[]
         preds=[]
 
+        weight_ce=torch.rand(1).item()
+        weight_sc=1-weight_ce
+        weight_sc_list.append(weight_sc)
+
         for batchdata in tqdm(train_loader, desc='Training'):
             inputs_rmol = [b.to(cuda) for b in batchdata[:rmol_max_cnt]]
             inputs_pmol = [
@@ -265,9 +269,7 @@ def training(
             preds.extend(torch.argmax(pred, dim=1).tolist())
             loss_ce= loss_fn(pred, labels)
 
-            weight_ce=torch.rand(1).item()
-            weight_sc=1-weight_ce
-            weight_sc_list.append(weight_sc)
+
             loss = weight_ce*loss_ce+weight_sc*loss_sc
 
 
