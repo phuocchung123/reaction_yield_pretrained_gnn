@@ -30,7 +30,7 @@ def new_smi_react(smi):
         ele_pro=product.split('.')
         ele_pro1=product1.split('.')
         product_main=[i for i in ele_pro if i not in ele_pro1]
-        product_main_2=[i for i in product if i not in precusor_main]
+        product_main_2=[i for i in product_main if i not in precusor_main]
         product_str='.'.join(product_main_2)
         
         new_react=precusor_str+'>>'+product_str
