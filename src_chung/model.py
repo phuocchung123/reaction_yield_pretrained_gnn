@@ -264,16 +264,16 @@ def training(
 
             r_rep,p_rep= net(inputs_rmol, inputs_pmol)
 
-            r_rep_contra=F.normalize(r_rep, dim=1)
-            p_rep_contra=F.normalize(p_rep, dim=1)
-            loss_sc=nt_xent_criterion(r_rep_contra, p_rep_contra)
+            # r_rep_contra=F.normalize(r_rep, dim=1)
+            # p_rep_contra=F.normalize(p_rep, dim=1)
+            # loss_sc=nt_xent_criterion(r_rep_contra, p_rep_contra)
 
             pred = net.predict(torch.sub(r_rep,p_rep))
             preds.extend(torch.argmax(pred, dim=1).tolist())
-            loss_ce= loss_fn(pred, labels)
+            loss= loss_fn(pred, labels)
 
 
-            loss = weight_ce*loss_ce+weight_sc*loss_sc
+            # loss = weight_ce*loss_ce+weight_sc*loss_sc
 
 
             optimizer.zero_grad()
