@@ -248,8 +248,8 @@ def training(
         # # weight_ce=torch.rand(1).item()
         # # weight_sc=1-weight_ce
         # # weight_sc_list.append(weight_sc)
-        weight_ce=0.62
-        weight_sc=0.38
+        weight_ce=0.80
+        weight_sc=0.20
 
         for batchdata in tqdm(train_loader, desc='Training'):
             inputs_rmol = [b.to(cuda) for b in batchdata[:rmol_max_cnt]]
