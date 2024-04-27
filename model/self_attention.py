@@ -15,7 +15,7 @@ class FeedForwardNetwork(nn.Module):
 
         self.layer1 = nn.Linear(hidden_size, ffn_size)
         #        self.gelu = GELU()
-        self.gelu = nn.GELU()
+        self.gelu = nn.ReLU(inplace=True)
         self.layer2 = nn.Linear(ffn_size, hidden_size)
 
     def forward(self, x):
@@ -43,41 +43,53 @@ class MultiHeadAttention(nn.Module):
 
     def forward(self, q, k, v, attn_bias=None):
         orig_q_size = q.size()
-        # print('q_shape: ',q.shape)
 
         d_k = self.att_size
         d_v = self.att_size
-        batch_size_q = q.size(0)
+        batch_size = q.size(0)
 
-        q = self.linear_q(q).view(batch_size_q, -1, self.num_heads, d_k)
-        # print('q_shape: ',q.shape)
-        batch_size_k=k.size(0)
-        k = self.linear_k(k)
-        # print('k_shape: ',k.shape)
-        k=k.view(batch_size_k, -1, self.num_heads, d_k)
-        # print('k_shape ver2: ',k.shape)
-        v = self.linear_v(v).view(batch_size_k, -1, self.num_heads, d_v)
-        # print('v_shape: ',v.shape)
+        q = self.linear_q(q).view(batch_size, -1, self.num_heads, d_k)
+        k = self.linear_k(k).view(batch_size, -1, self.num_heads, d_k)
+        v = self.linear_v(v).view(batch_size, -1, self.num_heads, d_v)
 
-        q = q.transpose(0, 2)  # [q_len, h, b_q, d_q]
-        v = v.transpose(0, 2)  # [v_len, h, b_kv, d_v]
-        k = k.transpose(0, 2).transpose(2, 3)  # [k_len, h, d_k, b_kv]
+        q = q.transpose(1, 2)  # [b, h, q_len, d_k]
+        v = v.transpose(1, 2)  # [b, h, v_len, d_v]
+        k = k.transpose(1, 2).transpose(2, 3)  # [b, h, d_k, k_len]
 
         # Scaled Dot-Product Attention.
         # Attention(Q, K, V) = softmax((QK^T)/sqrt(d_k))V
         q = q * self.scale
-        x = torch.matmul(q, k)  # [q_len(k_len), h, b_q, b_kv]
+        x = torch.matmul(q, k)  # [b, h, q_len, k_len]
         if attn_bias is not None:
             x = x + attn_bias
         x = torch.softmax(x, dim=3)
+        # print(x.size())
+        #
+        # Attention analyse
+        #        csvwriter = csv.writer(open("attention.csv","a+",newline=""))
+
+#         temp = x.cpu().detach().numpy()
+#         #        temp = temp.argmax(axis = 2)
+#         temp = temp.mean(axis=2)
+# #        print(temp.shape)
+#         if temp.shape == (290,2,63):
+#             np.save("attention.npy",temp)
+
+
+        #        
+#        np.save("")
+        #        csvwriter.writerows(temp.tolist())
         x = self.att_dropout(x)
-        x = x.matmul(v)  # [b, h, q_len, attn] [q_len(k_len), h, b_q, d_v]
+        x = x.matmul(v)  # [b, h, q_len, attn]
         
-        x = x.transpose(0, 2).transpose(1,2).contiguous()  # [b, q_len, h, attn] [b_q, q_len(k_len),h, d_v]
-        x = x.view(batch_size_q, -1, self.num_heads * d_v)
+        x = x.transpose(1, 2).contiguous()  # [b, q_len, h, attn]
+
+        x = x.view(batch_size, -1, self.num_heads * d_v)
+
         x = self.output_layer(x)
 
         x=x.squeeze(1)
+        assert x.size() == orig_q_size
         return x
 
 
@@ -95,11 +107,8 @@ class EncoderLayer(nn.Module):
         self.ffn_dropout = nn.Dropout(dropout_rate)
 
     def forward(self, x, kv, attn_bias=None):
-        # print('x_shape: ',x.shape)
         y = self.self_attention_norm(x)
-        # print('y_shape: ',y.shape)
         kv = self.self_attention_norm(kv)
-        # print('kv_shape: ',kv.shape)
         y = self.self_attention(y, kv, kv, attn_bias)
         y = self.self_attention_dropout(y)
         x = x + y

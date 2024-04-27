@@ -70,7 +70,7 @@ def finetune(args):
 
     pretrained_model_path = "./model/pretrained/" + "27407_pretrained_gnn.pt" 
 
-    net = reactionMPNN(node_dim, edge_dim, pretrained_model_path).cuda()
+    net = reactionMPNN(node_dim, edge_dim, pretrained_model_path).to('cuda')
 
     if use_saved == False:
         print("-- TRAINING")
@@ -83,7 +83,7 @@ def finetune(args):
     test_y = test_loader.dataset.y
     test_y=torch.argmax(torch.Tensor(test_y), dim=1).tolist()
 
-    net = reactionMPNN(node_dim, edge_dim).cuda()
+    net = reactionMPNN(node_dim, edge_dim).to('cuda')
     net.load_state_dict(torch.load(model_path))
     test_y_pred = inference(
         net, test_loader,

@@ -6,7 +6,7 @@ import torch.nn.functional as F
 from torch.optim import Adam
 from torch.optim.lr_scheduler import MultiStepLR
 from dgl.nn.pytorch import GINEConv
-from dgl.nn.pytorch.glob import SumPooling, AvgPooling
+from dgl.nn.pytorch.glob import AvgPooling
 from sklearn.metrics import accuracy_score, matthews_corrcoef
 import seaborn as sns
 import matplotlib.pyplot as plt
@@ -65,7 +65,7 @@ class GIN(nn.Module):
             ]
         )
 
-        self.readout = SumPooling()
+        self.readout = AvgPooling()
 
         self.sparsify = nn.Sequential(
             nn.Linear(node_hid_feats, readout_feats), nn.PReLU()
@@ -88,13 +88,11 @@ class GIN(nn.Module):
                 node_feats = nn.functional.relu(node_feats)
 
             node_feats = self.dropout(node_feats)
-        # print(node_feats.shape)
-        
 
-        # readout = self.readout(g, node_feats)
-        # readout = self.sparsify(readout)
+        readout = self.readout(g, node_feats)
+        readout = self.sparsify(readout)
 
-        return node_feats
+        return readout
 
     def load_my_state_dict(self, state_dict):
         own_state = self.state_dict()
@@ -116,10 +114,9 @@ class reactionMPNN(nn.Module):
         node_in_feats,
         edge_in_feats,
         pretrained_model_path=None,
-        readout_feats=300,
+        readout_feats=1024,
         predict_hidden_feats=512,
         prob_dropout=0.1,
-        cuda=torch.device('cuda:0')
     ):
         super(reactionMPNN, self).__init__()
 
@@ -141,58 +138,24 @@ class reactionMPNN(nn.Module):
             nn.Dropout(prob_dropout),
             nn.Linear(predict_hidden_feats, 50),
         )
-        # self.batch_size=batch_size
-        self.cuda=cuda
 
         # Cross-Attention Module
-        self.rea_attention_pro = EncoderLayer(300,512, 0.1, 0.1, 2)  # 注意力机制
-        self.pro_attention_rea = EncoderLayer(300,512, 0.1, 0.1, 2)
+        self.rea_attention_pro = EncoderLayer(1024,512, 0.1, 0.1, 96)  # 注意力机制
+        self.pro_attention_rea = EncoderLayer(1024,512, 0.1, 0.1, 96)
 
     def forward(self, rmols, pmols):
-        r_graph_feats = torch.cat([self.mpnn(mol) for mol in rmols])
-        # print('r_graph_feats: ',r_graph_feats.shape)
-        p_graph_feats = torch.cat([self.mpnn(mol) for mol in pmols])
-        # print('p_graph_feats: ',p_graph_feats.shape)
-        r_num_nodes=torch.stack([i.batch_num_nodes() for i in rmols])
-        p_num_nodes=torch.stack([i.batch_num_nodes() for i in pmols])
-        batch_size=r_num_nodes.size(1)
+        r_graph_feats = torch.sum(torch.stack([self.mpnn(mol) for mol in rmols]), 0)
+        p_graph_feats = torch.sum(torch.stack([self.mpnn(mol) for mol in pmols]), 0)
+        r_graph_feats_attetion=r_graph_feats
+
+        r_graph_feats=self.rea_attention_pro(r_graph_feats, p_graph_feats)
+        p_graph_feats=self.pro_attention_rea(p_graph_feats, r_graph_feats_attetion)
 
 
-        r_graph_feats_out=torch.tensor([]).to(self.cuda)
-        p_graph_feats_out=torch.tensor([]).to(self.cuda)
-        for i in range(batch_size):
-            reactants=torch.tensor([]).to(self.cuda)
-            products=torch.tensor([]).to(self.cuda)
+        # concat_feats = torch.cat([r_graph_feats,p_graph_feats],1)
+        # out = self.predict(concat_feats)
 
-            start=0
-            for m in range(r_num_nodes.size(0)):
-                end=r_num_nodes[m][i]
-                reactant=r_graph_feats[start:end]
-                reactants=torch.cat((reactants, reactant))
-                start=end
-
-            start=0
-            for n in range(p_num_nodes.size(0)):
-                end=p_num_nodes[n][i]
-                product=p_graph_feats[start:end]
-                products=torch.cat((products, product))
-                start=end
-
-            r_graph_feat=self.rea_attention_pro(reactants, products)
-            # print('r_graph_feat: ',r_graph_feat.shape)
-            r_graph_feat=torch.sum(r_graph_feat,0).unsqueeze(0)
-            r_graph_feats_out=torch.cat((r_graph_feats_out, r_graph_feat))
-            # print('r_graph_feats_out: ',r_graph_feats_out.shape)
-
-
-            p_graph_feat=self.pro_attention_rea(products, reactants)
-            # print('p_graph_feat: ',p_graph_feat.shape)
-            p_graph_feat=torch.sum(p_graph_feat,0).unsqueeze(0)
-            # print('p_graph_feat: ',p_graph_feat.shape)
-            p_graph_feats_out=torch.cat((p_graph_feats_out, p_graph_feat))
-            # print('p_graph_feats_out: ',p_graph_feats_out.shape)
-
-        return r_graph_feats_out, p_graph_feats_out
+        return r_graph_feats, p_graph_feats
 
 
 def training(
@@ -215,11 +178,11 @@ def training(
     except:
         rmol_max_cnt = train_loader.dataset.rmol_max_cnt
         pmol_max_cnt = train_loader.dataset.pmol_max_cnt
-    # print('rmol_max_cnt:', rmol_max_cnt, '\n pmol_max_cnt:', pmol_max_cnt)
+    print('rmol_max_cnt:', rmol_max_cnt, '\n pmol_max_cnt:', pmol_max_cnt)
 
     loss_fn = nn.CrossEntropyLoss()
-    n_epochs = 20
-    optimizer = Adam(net.parameters(), lr=0.00001, weight_decay=1e-5)
+    n_epochs = 50
+    optimizer = Adam(net.parameters(), lr=5e-4, weight_decay=1e-5)
 
 
     train_loss_all=[]
@@ -285,17 +248,15 @@ def training(
         # # weight_ce=torch.rand(1).item()
         # # weight_sc=1-weight_ce
         # # weight_sc_list.append(weight_sc)
-        # weight_ce=0.62
-        # weight_sc=0.38
+        weight_ce=0.80
+        weight_sc=0.20
 
         for batchdata in tqdm(train_loader, desc='Training'):
             inputs_rmol = [b.to(cuda) for b in batchdata[:rmol_max_cnt]]
-            # print('inputs_rmol_shape: ',len(inputs_rmol))
             inputs_pmol = [
                 b.to(cuda)
                 for b in batchdata[rmol_max_cnt : rmol_max_cnt + pmol_max_cnt]
             ]
-            # print('inputs_pmol_shape: ',len(inputs_pmol))
 
             labels = batchdata[-1]
             targets.extend(labels.tolist())
@@ -303,8 +264,8 @@ def training(
 
             r_rep,p_rep= net(inputs_rmol, inputs_pmol)
 
-            r_rep_contra=F.normalize(r_rep, dim=1)
-            p_rep_contra=F.normalize(p_rep, dim=1)
+            # r_rep_contra=F.normalize(r_rep, dim=1)
+            # p_rep_contra=F.normalize(p_rep, dim=1)
             # loss_sc=nt_xent_criterion(r_rep_contra, p_rep_contra)
 
             pred = net.predict(torch.sub(r_rep,p_rep))
@@ -379,7 +340,7 @@ def training(
 
                     r_rep,p_rep=net(inputs_rmol, inputs_pmol)
                     pred_val = net.predict(torch.sub(r_rep,p_rep))
-                    val_preds.extend(torch.argmax(pred_val, dim=1).tolist())   
+                    val_preds.extend(torch.argmax(pred_val, dim=1).tolist())    
                     loss=loss_fn(pred_val,labels_val)
 
 
@@ -412,7 +373,7 @@ def training(
 
     print("training terminated at epoch %d" % epoch)
 
-    return net
+    return net,train_loss_all, val_loss_all, acc_all, mcc_all, acc_all_val, mcc_all_val
 
 
 def inference(
