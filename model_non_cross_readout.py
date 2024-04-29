@@ -91,10 +91,10 @@ class GIN(nn.Module):
         # print(node_feats.shape)
         
 
-        # readout = self.readout(g, node_feats)
-        # readout = self.sparsify(readout)
+        readout = self.readout(g, node_feats)
+        readout = self.sparsify(readout)
 
-        return node_feats
+        return readout
 
     def load_my_state_dict(self, state_dict):
         own_state = self.state_dict()
@@ -116,7 +116,7 @@ class reactionMPNN(nn.Module):
         node_in_feats,
         edge_in_feats,
         pretrained_model_path=None,
-        readout_feats=300,
+        readout_feats=1024,
         predict_hidden_feats=512,
         prob_dropout=0.1,
         cuda=torch.device('cuda:0')
@@ -145,67 +145,45 @@ class reactionMPNN(nn.Module):
         self.cuda=cuda
 
         # Cross-Attention Module
-        self.rea_attention_pro = EncoderLayer(300,128, 0.1, 0.1, 2)  # 注意力机制
-        self.pro_attention_rea = EncoderLayer(300,128, 0.1, 0.1, 2)
+        # self.rea_attention_pro = EncoderLayer(1024,512, 0.1, 0.1, 32)  # 注意力机制
+        # self.pro_attention_rea = EncoderLayer(1024,512, 0.1, 0.1, 32)
 
     def forward(self, rmols, pmols):
         r_graph_feats = [self.mpnn(mol) for mol in rmols]
-        # print('r_graph_feats: ',len(r_graph_feats))
-        # print('1st: ', r_graph_feats[0].shape)
         p_graph_feats = [self.mpnn(mol) for mol in pmols]
-        # print('r_graph_feats: ',len(p_graph_feats))
-        # print('1st: ', p_graph_feats[0].shape)
 
         # print('p_graph_feats: ',p_graph_feats.shape)
         r_num_nodes=torch.stack([i.batch_num_nodes() for i in rmols])
         p_num_nodes=torch.stack([i.batch_num_nodes() for i in pmols])
         batch_size=r_num_nodes.size(1)
-        # print('r_num_nodes: ',r_num_nodes.shape)
 
 
         r_graph_feats_out=torch.tensor([]).to(self.cuda)
         p_graph_feats_out=torch.tensor([]).to(self.cuda)
 
 
-        start_list_r=torch.zeros(r_num_nodes.size(0)).to(self.cuda)
-        start_list_p=torch.zeros(p_num_nodes.size(0)).to(self.cuda)
+
         for i in range(batch_size):
             reactants=torch.tensor([]).to(self.cuda)
             products=torch.tensor([]).to(self.cuda)
 
-            num_node_list_r=r_num_nodes[:,i]
-            end_list_r=start_list_r + num_node_list_r
 
-            for idx,m in enumerate(r_graph_feats):
-                start_point=start_list_r[idx].type(torch.int32)
-                end_point=end_list_r[idx].type(torch.int32)
-                # print('start_point',start_point)
-                # print('end_point',end_point)
-                reactant=m[start_point:end_point]
+            for m in r_graph_feats:
+                reactant=m[i].unsqueeze(0)
                 reactants=torch.cat((reactants, reactant))
 
-            start_list_r=end_list_r
-
-
-            num_node_list_p=p_num_nodes[:,i]
-            end_list_p=start_list_p+num_node_list_p
-            for idx,n in enumerate(p_graph_feats):
-                start_point=start_list_p[idx].type(torch.int32)
-                end_point=end_list_p[idx].type(torch.int32)
-                product=n[start_point:end_point]
+            for n in p_graph_feats:
+                product=n[i].unsqueeze(0)
                 products=torch.cat((products, product))
 
-            start_list_p=end_list_p
-
-            reactants=self.rea_attention_pro(reactants, products)
-            products=self.pro_attention_rea(products, reactants)
+            
 
             r_graph_feat=torch.sum(reactants, 0).unsqueeze(0)
             p_graph_feat=torch.sum(products, 0).unsqueeze(0)
 
+
             r_graph_feats_out=torch.cat((r_graph_feats_out, r_graph_feat))
             p_graph_feats_out=torch.cat((p_graph_feats_out, p_graph_feat))
-
             
 
         return r_graph_feats_out, p_graph_feats_out
@@ -231,7 +209,6 @@ def training(
     except:
         rmol_max_cnt = train_loader.dataset.rmol_max_cnt
         pmol_max_cnt = train_loader.dataset.pmol_max_cnt
-    # print('rmol_max_cnt:', rmol_max_cnt, '\n pmol_max_cnt:', pmol_max_cnt)
 
     loss_fn = nn.CrossEntropyLoss()
     n_epochs = 20
@@ -411,11 +388,7 @@ def training(
 
 
                 val_loss_all.append(np.mean(val_loss_list))
-                acc_all_val.append(val_acc)
-                mcc_all_val.append(val_mcc)
-
-
-
+                acc_all_val.append(val_acc)lr=0.001, weight_decay=0.001
                 print(
                     "--- validation at epoch %d, val_loss %.3f, val_acc %.3f, val_mcc %.3f ---"
                     % (epoch, np.mean(val_loss_list),val_acc,val_mcc)

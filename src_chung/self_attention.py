@@ -14,8 +14,9 @@ class FeedForwardNetwork(nn.Module):
         super(FeedForwardNetwork, self).__init__()
 
         self.layer1 = nn.Linear(hidden_size, ffn_size)
+
         #        self.gelu = GELU()
-        self.gelu = nn.GELU()
+        self.gelu = nn.ReLU(inplace=True)
         self.layer2 = nn.Linear(ffn_size, hidden_size)
 
     def forward(self, x):
@@ -95,17 +96,18 @@ class EncoderLayer(nn.Module):
         self.ffn_dropout = nn.Dropout(dropout_rate)
 
     def forward(self, x, kv, attn_bias=None):
-        # print('x_shape: ',x.shape)
-        y = self.self_attention_norm(x)
-        # print('y_shape: ',y.shape)
-        kv = self.self_attention_norm(kv)
-        # print('kv_shape: ',kv.shape)
-        y = self.self_attention(y, kv, kv, attn_bias)
-        y = self.self_attention_dropout(y)
-        x = x + y
+        for _ in range(6):
+            # print('x_shape: ',x.shape)
+            y = self.self_attention_norm(x)
+            # print('y_shape: ',y.shape)
+            kv = self.self_attention_norm(kv)
+            # print('kv_shape: ',kv.shape)
+            y = self.self_attention(y, kv, kv, attn_bias)
+            y = self.self_attention_dropout(y)
+            x = x + y
 
-        y = self.ffn_norm(x)
-        y = self.ffn(y)
-        y = self.ffn_dropout(y)
-        x = x + y
+            y = self.ffn_norm(x)
+            y = self.ffn(y)
+            y = self.ffn_dropout(y)
+            x = x + y
         return x

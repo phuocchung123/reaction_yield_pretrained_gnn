@@ -23,7 +23,7 @@ def finetune(args):
     use_saved = False
     model_path = "./data_chung/model/finetuned/model.pt"
 
-    train_set = GraphDataset(args.graph_save_path+'data_train.npz')
+    train_set = GraphDataset(args.graph_save_path+'data_train2.npz')
 
     train_loader = DataLoader(
         dataset=train_set,
@@ -33,7 +33,7 @@ def finetune(args):
         drop_last=True,
     )
 
-    valid_set = GraphDataset(args.graph_save_path+'data_valid.npz')
+    valid_set = GraphDataset(args.graph_save_path+'data_valid2.npz')
 
     val_loader = DataLoader(
         dataset=valid_set,
@@ -43,7 +43,7 @@ def finetune(args):
         drop_last=True,
     )
 
-    test_set=GraphDataset(args.graph_save_path+'data_test.npz')
+    test_set=GraphDataset(args.graph_save_path+'data_test2.npz')
     test_loader = DataLoader(
         dataset=test_set,
         batch_size=batch_size,
@@ -74,7 +74,7 @@ def finetune(args):
 
     if use_saved == False:
         print("-- TRAINING")
-        net,train_loss,val_loss,acc,val_acc,mcc,val_mcc = training(net, train_loader,val_loader, model_path)
+        net= training(net, train_loader,val_loader, model_path)
 
     else:
         pass
@@ -109,17 +109,17 @@ def finetune(args):
         % (result[0], result[1],result[2],result[3],result[4],result[5],result[6],result[7])
     )
 
-    sns.set()
-    fig, axes = plt.subplots(1, 3, figsize=(18, 5))
-    sns.lineplot(data=train_loss, label='train', ax=axes[0]).set(title='Loss')
-    sns.lineplot(data=val_loss, label='valid', ax=axes[0])
+    # sns.set()
+    # fig, axes = plt.subplots(1, 3, figsize=(18, 5))
+    # sns.lineplot(data=train_loss, label='train', ax=axes[0]).set(title='Loss')
+    # sns.lineplot(data=val_loss, label='valid', ax=axes[0])
     
-    # plot acc learning curves
-    sns.lineplot(data=acc, label='train', ax=axes[1]).set(title='Accuracy')
-    sns.lineplot(data=val_acc, label='valid', ax=axes[1])
-    # sns.lineplot(data=weight_sc, label='weight_sc', ax=axes[1])
-    # plot mcc learning curves
-    sns.lineplot(data=mcc, label='train', ax=axes[2]).set(title='Matthews Correlation Coefficient')
-    sns.lineplot(data=val_mcc, label='valid', ax=axes[2])
+    # # plot acc learning curves
+    # sns.lineplot(data=acc, label='train', ax=axes[1]).set(title='Accuracy')
+    # sns.lineplot(data=val_acc, label='valid', ax=axes[1])
+    # # sns.lineplot(data=weight_sc, label='weight_sc', ax=axes[1])
+    # # plot mcc learning curves
+    # sns.lineplot(data=mcc, label='train', ax=axes[2]).set(title='Matthews Correlation Coefficient')
+    # sns.lineplot(data=val_mcc, label='valid', ax=axes[2])
 
-    plt.show()
+    # plt.show()

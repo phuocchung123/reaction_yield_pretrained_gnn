@@ -145,8 +145,8 @@ class reactionMPNN(nn.Module):
         self.cuda=cuda
 
         # Cross-Attention Module
-        self.rea_attention_pro = EncoderLayer(300,128, 0.1, 0.1, 2)  # 注意力机制
-        self.pro_attention_rea = EncoderLayer(300,128, 0.1, 0.1, 2)
+        self.rea_attention_pro = EncoderLayer(300,128, 0.1, 0.1, 32)  # 注意力机制
+        self.pro_attention_rea = EncoderLayer(300,128, 0.1, 0.1, 32)
 
     def forward(self, rmols, pmols):
         r_graph_feats = [self.mpnn(mol) for mol in rmols]
@@ -206,6 +206,39 @@ class reactionMPNN(nn.Module):
             r_graph_feats_out=torch.cat((r_graph_feats_out, r_graph_feat))
             p_graph_feats_out=torch.cat((p_graph_feats_out, p_graph_feat))
 
+
+
+
+
+
+
+        # for i in range(batch_size):
+        #     reactants=torch.tensor([]).to(self.cuda)
+        #     products=torch.tensor([]).to(self.cuda)
+
+
+        #     for m in r_graph_feats:
+        #         reactant=m[i].unsqueeze(0)
+        #         reactants=torch.cat((reactants, reactant))
+        #     # print('reactants: ',reactants.shape)
+
+        #     for n in p_graph_feats:
+        #         product=n[i].unsqueeze(0)
+        #         products=torch.cat((products, product))
+        #     # print('products: ',products.shape)
+
+        #     reactants=self.rea_attention_pro(reactants, products)
+        #     products=self.pro_attention_rea(products, reactants)
+            
+
+        #     r_graph_feat=torch.sum(reactants, 0).unsqueeze(0)
+        #     # print('r_graph_feat: ',r_graph_feat.shape)
+        #     p_graph_feat=torch.sum(products, 0).unsqueeze(0)
+        #     # print('p_graph_feat: ',p_graph_feat.shape)
+        #     r_graph_feats_out=torch.cat((r_graph_feats_out, r_graph_feat))
+        #     # print('r_graph_feats_out: ',r_graph_feats_out.shape)
+        #     p_graph_feats_out=torch.cat((p_graph_feats_out, p_graph_feat))
+        #     # print('p_graph_feats_out: ',p_graph_feats_out.shape)
             
 
         return r_graph_feats_out, p_graph_feats_out
