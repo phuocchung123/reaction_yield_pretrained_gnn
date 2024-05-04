@@ -388,7 +388,7 @@ def training(
 
 
                 val_loss_all.append(np.mean(val_loss_list))
-                acc_all_val.append(val_acc)lr=0.001, weight_decay=0.001
+                acc_all_val.append(val_acc)
                 print(
                     "--- validation at epoch %d, val_loss %.3f, val_acc %.3f, val_mcc %.3f ---"
                     % (epoch, np.mean(val_loss_list),val_acc,val_mcc)
