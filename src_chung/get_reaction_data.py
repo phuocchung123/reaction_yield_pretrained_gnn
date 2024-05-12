@@ -4,6 +4,7 @@ from rdkit import Chem
 from src_chung.preprocess_util import add_mol, add_dummy, dict_list_to_numpy
 
 
+
 def mol_dict():
     return {
         "n_node": [],
@@ -15,24 +16,27 @@ def mol_dict():
     }
 
 
-def get_graph_data(rsmi_list, y_list, filename,rmol_max_cnt,pmol_max_cnt):
+def get_graph_data(rsmi_list,reagent, y_list, filename,rmol_max_cnt,pmol_max_cnt,rgmol_max_cnt):
     rmol_max_cnt = rmol_max_cnt
     pmol_max_cnt = pmol_max_cnt
+    rgmol_max_cnt=rgmol_max_cnt
 
     rmol_dict = [mol_dict() for _ in range(rmol_max_cnt)]
     pmol_dict = [mol_dict() for _ in range(pmol_max_cnt)]
+    rgmol_dict = [mol_dict() for _ in range(rgmol_max_cnt)]   
 
     reaction_dict = {"y": [], "rsmi": []}
 
     print("--- generating graph data for %s" % filename)
     print(
-        "--- n_reactions: %d, reactant_max_cnt: %d, product_max_cnt: %d"
-        % (len(rsmi_list), rmol_max_cnt, pmol_max_cnt)
+        "--- n_reactions: %d, reactant_max_cnt: %d, product_max_cnt: %d, rgmol_max_cnt: %d"
+        % (len(rsmi_list), rmol_max_cnt, pmol_max_cnt,rgmol_max_cnt)
     )
 
     for i in range(len(rsmi_list)):
         rsmi = rsmi_list[i].replace("~", "-")
         y = y_list[i]
+        reagents_smi=reagent[i]
 
         [reactants_smi, products_smi] = rsmi.split(">>")
 
@@ -94,6 +98,36 @@ def get_graph_data(rsmi_list, y_list, filename,rmol_max_cnt,pmol_max_cnt):
                 pmol = Chem.RemoveHs(pmol)
                 pmol_dict[j] = add_mol(pmol_dict[j], pmol)
 
+
+        # processing reagents
+        reagents_smi_list = reagents_smi.split(".")
+        for _ in range(rgmol_max_cnt - len(reagents_smi_list)):
+            reagents_smi_list.append("")
+        for j, smi in enumerate(reagents_smi_list):
+            if smi == "":
+                rgmol_dict[j] = add_dummy(rgmol_dict[j])
+            else:
+                rgmol = Chem.MolFromSmiles(smi)
+                rgs = Chem.FindPotentialStereo(rgmol)
+                for element in rgs:
+                    if (
+                        str(element.type) == "Atom_Tetrahedral"
+                        and str(element.specified) == "Specified"
+                    ):
+                        rgmol.GetAtomWithIdx(element.centeredOn).SetProp(
+                            "Chirality", str(element.descriptor)
+                        )
+                    elif (
+                        str(element.type) == "Bond_Double"
+                        and str(element.specified) == "Specified"
+                    ):
+                        rgmol.GetBondWithIdx(element.centeredOn).SetProp(
+                            "Stereochemistry", str(element.descriptor)
+                        )
+
+                rgmol = Chem.RemoveHs(rgmol)
+                rgmol_dict[j] = add_mol(rgmol_dict[j], rgmol)
+
         # yield and reaction SMILES
         reaction_dict["y"].append(y)
         reaction_dict["rsmi"].append(rsmi)
@@ -107,7 +141,10 @@ def get_graph_data(rsmi_list, y_list, filename,rmol_max_cnt,pmol_max_cnt):
         rmol_dict[j] = dict_list_to_numpy(rmol_dict[j])
     for j in range(pmol_max_cnt):
         pmol_dict[j] = dict_list_to_numpy(pmol_dict[j])
+    for j in range(rgmol_max_cnt):
+        rgmol_dict[j] = dict_list_to_numpy(rgmol_dict[j])
+
     reaction_dict["y"] = np.array(reaction_dict["y"])
 
     # save file
-    np.savez_compressed(filename, rmol=rmol_dict, pmol=pmol_dict, reaction=reaction_dict)
+    np.savez_compressed(filename, rmol=rmol_dict, pmol=pmol_dict,rgmol=rgmol_dict ,reaction=reaction_dict)

@@ -43,9 +43,9 @@ def new_smi_react(smi):
         reagent=np.nan
 
     return new_react,reagent
-
-data['new_rxn'],data['reagent_separated']=data['rxn'].apply(new_smi_react)
-data=data.dropna(subset=['new_rxn'])
+df=pd.DataFrame(data['rxn'].apply(new_smi_react))
+data[['new_rxn','reagent_separated']]=df['rxn'].apply(pd.Series)
+data=data.dropna(subset=['new_rxn','reagent_separated'])
 
 
 
@@ -76,7 +76,7 @@ reagent_train=data_train['reagent_separated'].values
 y_list_train=data_train['y'].values
 y_list_train=to_categorical(y_list_train, 50)
 filename_train='./data_chung/data_train_ms.npz'
-get_graph_data(rsmi_list_train,reagent_train,y_list_train,filename_train,rmol_max_cnt,pmol_max_cnt)
+get_graph_data(rsmi_list_train,reagent_train,y_list_train,filename_train,rmol_max_cnt,pmol_max_cnt,reagent_max_cnt)
 
 #get_data_valid
 rsmi_list_valid=data_valid['rxn'].values
@@ -84,7 +84,7 @@ reagent_valid=data_valid['reagent_separated'].values
 y_list_valid=data_valid['y'].values
 y_list_valid=to_categorical(y_list_valid, 50)
 filename_valid='./data_chung/data_valid_ms.npz'
-get_graph_data(rsmi_list_valid,reagent_valid,y_list_valid,filename_valid,rmol_max_cnt,pmol_max_cnt)
+get_graph_data(rsmi_list_valid,reagent_valid,y_list_valid,filename_valid,rmol_max_cnt,pmol_max_cnt,reagent_max_cnt)
 
 #get_data_test
 data_test=data[data['split']=='test']
@@ -93,4 +93,4 @@ rsmi_list_test=data_test['rxn'].values
 y_list_test=data_test['y'].values
 y_list_test=to_categorical(y_list_test, 50)
 filename_test='./data_chung/data_test_ms.npz'
-get_graph_data(rsmi_list_test,reagent_test,y_list_test,filename_test,rmol_max_cnt,pmol_max_cnt)
+get_graph_data(rsmi_list_test,reagent_test,y_list_test,filename_test,rmol_max_cnt,pmol_max_cnt,reagent_max_cnt)
