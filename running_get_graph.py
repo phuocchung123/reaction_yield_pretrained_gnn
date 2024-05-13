@@ -80,7 +80,7 @@ filename_train='./data_chung/data_train_ms.npz'
 get_graph_data(rsmi_list_train,reagent_train,y_list_train,filename_train,rmol_max_cnt,pmol_max_cnt,reagent_max_cnt)
 
 #get_data_valid
-rsmi_list_valid=data_valid['rxn'].values
+rsmi_list_valid=data_valid['new_rxn'].values
 reagent_valid=data_valid['reagent_separated'].values
 y_list_valid=data_valid['y'].values
 y_list_valid=to_categorical(y_list_valid, 50)
@@ -90,7 +90,7 @@ get_graph_data(rsmi_list_valid,reagent_valid,y_list_valid,filename_valid,rmol_ma
 #get_data_test
 data_test=data[data['split']=='test']
 reagent_test=data_test['reagent_separated'].values
-rsmi_list_test=data_test['rxn'].values
+rsmi_list_test=data_test['new_rxn'].values
 y_list_test=data_test['y'].values
 y_list_test=to_categorical(y_list_test, 50)
 filename_test='./data_chung/data_test_ms.npz'
