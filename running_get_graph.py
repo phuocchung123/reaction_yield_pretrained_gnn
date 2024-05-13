@@ -49,6 +49,7 @@ data=data.dropna(subset=['new_rxn','reagent_separated'])
 
 
 
+
 # Transfer from rxn_class to class
 with open('./data_chung/rxnclass2id.json','r') as f:
     rxnclass2id=json.load(f)
