@@ -351,7 +351,7 @@ def training(
             targets.extend(labels.tolist())
             labels = labels.to(cuda)
 
-            r_rep= net(inputs_rmol, inputs_pmol)
+            r_rep= net(inputs_rmol, inputs_pmol, inputs_rgmol)
 
             # r_rep_contra=F.normalize(r_rep, dim=1)
             # p_rep_contra=F.normalize(p_rep, dim=1)
@@ -403,10 +403,12 @@ def training(
             try:
                 rmol_max_cnt = val_loader.dataset.dataset.rmol_max_cnt
                 pmol_max_cnt = val_loader.dataset.dataset.pmol_max_cnt
+                rgmol_max_cnt = val_loader.dataset.dataset.rgmol_max_cnt
 
             except:
                 rmol_max_cnt = val_loader.dataset.rmol_max_cnt
                 pmol_max_cnt = val_loader.dataset.pmol_max_cnt
+                rgmol_max_cnt = val_loader.dataset.rgmol_max_cnt
 
             net.eval()
             val_loss_list=[]
@@ -421,13 +423,17 @@ def training(
                         b.to(cuda)
                         for b in batchdata[rmol_max_cnt : rmol_max_cnt + pmol_max_cnt]
                     ]
+                    inputs_rgmol=[
+                        b.to(cuda)
+                        for b in batchdata[rmol_max_cnt + pmol_max_cnt : rmol_max_cnt + pmol_max_cnt + rgmol_max_cnt]
+                    ]
 
                     labels_val = batchdata[-1]
                     val_targets.extend(labels_val.tolist())
                     labels_val = labels_val.to(cuda)
 
 
-                    r_rep=net(inputs_rmol, inputs_pmol)
+                    r_rep=net(inputs_rmol, inputs_pmol, inputs_rgmol)
                     pred_val = net.predict(r_rep)
                     val_preds.extend(torch.argmax(pred_val, dim=1).tolist())   
                     loss=loss_fn(pred_val,labels_val)
@@ -475,10 +481,12 @@ def inference(
     try:
         rmol_max_cnt = test_loader.dataset.dataset.rmol_max_cnt
         pmol_max_cnt = test_loader.dataset.dataset.pmol_max_cnt
+        rgmol_max_cnt = test_loader.dataset.dataset.rgmol_max_cnt
 
     except:
         rmol_max_cnt = test_loader.dataset.rmol_max_cnt
         pmol_max_cnt = test_loader.dataset.pmol_max_cnt
+        rgmol_max_cnt = test_loader.dataset.rgmol_max_cnt
 
     net.eval()
 
@@ -491,7 +499,11 @@ def inference(
                 b.to(cuda)
                 for b in batchdata[rmol_max_cnt : rmol_max_cnt + pmol_max_cnt]
             ]
-            r_rep= net(inputs_rmol, inputs_pmol)
+            inputs_rgmol=[
+                b.to(cuda)
+                for b in batchdata[rmol_max_cnt + pmol_max_cnt : rmol_max_cnt + pmol_max_cnt + rgmol_max_cnt]
+            ]
+            r_rep= net(inputs_rmol, inputs_pmol, inputs_rgmol)
 
             pred = net.predict(r_rep)
 
