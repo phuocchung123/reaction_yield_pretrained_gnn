@@ -13,7 +13,7 @@ warnings.filterwarnings('ignore')
 data=pd.read_csv('./data_chung/test.csv',index_col=0)
 
 
-data_pretrain,data_test=train_test_split(data,size=0.2,stratify=data['label'].values)
+data_pretrain,data_test=train_test_split(data,test_size=0.2,stratify=data['label'].values)
 data_train,data_valid=train_test_split(data_pretrain,test_size=0.2,stratify=data_pretrain['label'].values)
 
 
