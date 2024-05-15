@@ -163,6 +163,7 @@ class reactionMPNN(nn.Module):
 
         start_list_r=torch.zeros(r_num_nodes.size(0)).to(self.cuda)
         start_list_p=torch.zeros(p_num_nodes.size(0)).to(self.cuda)
+        reaction_feat_full=torch.tensor([]).to(self.cuda)
         for i in range(batch_size):
             reactants=torch.tensor([]).to(self.cuda)
             products=torch.tensor([]).to(self.cuda)
@@ -202,13 +203,14 @@ class reactionMPNN(nn.Module):
             products= torch.sum(products,0).unsqueeze(0)
 
             reaction_feat=torch.sub(reactants,products)
+            reaction_feat_full=torch.cat((reaction_feat_full, reaction_feat))
 
 
  
 
             
 
-        return reaction_feat
+        return reaction_feat_full
 
 
 def training(
@@ -319,6 +321,7 @@ def training(
             labels = labels.to(cuda)
 
             r_rep= net(inputs_rmol, inputs_pmol)
+            print('r_rep_shape: ',r_rep.shape)
 
             # r_rep_contra=F.normalize(r_rep, dim=1)
             # p_rep_contra=F.normalize(p_rep, dim=1)
@@ -326,9 +329,9 @@ def training(
 
             print('labels',labels.shape)
 
-            pred = net.predict(r_rep)
+            pred = net.predict(r_rep).squeeze()
             print('pred',pred.shape)
-            preds.extend(pred).tolist()
+            preds.extend(pred)
             loss= loss_fn(pred, labels)
 
 
@@ -399,8 +402,8 @@ def training(
 
 
                     r_rep=net(inputs_rmol, inputs_pmol)
-                    pred_val = net.predict(r_rep)
-                    # val_preds.extend(torch.argmax(pred_val, dim=1).tolist())   
+                    pred_val = net.predict(r_rep).squeeze()
+                    val_preds.extend(pred_val)   
                     loss=loss_fn(pred_val,labels_val)
 
 
