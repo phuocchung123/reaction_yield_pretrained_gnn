@@ -87,7 +87,7 @@ def finetune(args):
     net.load_state_dict(torch.load(model_path))
     test_y_pred = inference(
         net, test_loader,
-    ).squeeze()
+    )
     # test_y_pred=torch.argmax(torch.Tensor(test_y_pred), dim=1).tolist()    
 
 

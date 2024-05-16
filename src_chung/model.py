@@ -140,6 +140,7 @@ class reactionMPNN(nn.Module):
             nn.PReLU(),
             nn.Dropout(prob_dropout),
             nn.Linear(predict_hidden_feats, 1),
+            nn.Sigmoid(),
         )
         # self.batch_size=batch_size
         self.cuda=cuda
@@ -236,7 +237,7 @@ def training(
     # print('rmol_max_cnt:', rmol_max_cnt, '\n pmol_max_cnt:', pmol_max_cnt)
 
     loss_fn = nn.BCELoss()
-    n_epochs = 20
+    n_epochs = 1
     optimizer = Adam(net.parameters(), lr=5e-4, weight_decay=1e-5)
 
 
@@ -321,17 +322,17 @@ def training(
             labels = labels.to(cuda)
 
             r_rep= net(inputs_rmol, inputs_pmol)
-            print('r_rep_shape: ',r_rep.shape)
+            # print('r_rep_shape: ',r_rep.shape)
 
             # r_rep_contra=F.normalize(r_rep, dim=1)
             # p_rep_contra=F.normalize(p_rep, dim=1)
             # loss_sc=nt_xent_criterion(r_rep_contra, p_rep_contra)
 
-            print('labels',labels.shape)
+            # print('labels',labels.shape)
 
             pred = net.predict(r_rep).squeeze()
-            print('pred',pred.shape)
-            preds.extend(pred)
+            # print('pred',pred.shape)
+            preds.extend(pred.round().cpu().detach().numpy().tolist())
             loss= loss_fn(pred, labels)
 
 
@@ -403,7 +404,7 @@ def training(
 
                     r_rep=net(inputs_rmol, inputs_pmol)
                     pred_val = net.predict(r_rep).squeeze()
-                    val_preds.extend(pred_val)   
+                    val_preds.extend(pred_val.round().cpu().numpy().tolist())   
                     loss=loss_fn(pred_val,labels_val)
 
 
@@ -468,10 +469,11 @@ def inference(
 
             r_rep= net(inputs_rmol, inputs_pmol)
 
-            pred = net.predict(r_rep)
+            pred = net.predict(r_rep).squeeze()
 
 
             # pred_y.extend(torch.argmax(pred,dim=1).tolist())
+            pred_y.extend(pred.round().cpu().numpy().tolist())  
 
 
-    return pred
+    return pred_y
