@@ -14,7 +14,6 @@ class FeedForwardNetwork(nn.Module):
         super(FeedForwardNetwork, self).__init__()
 
         self.layer1 = nn.Linear(hidden_size, ffn_size)
-
         #        self.gelu = GELU()
         self.gelu = nn.GELU()
         self.layer2 = nn.Linear(ffn_size, hidden_size)
@@ -70,8 +69,8 @@ class MultiHeadAttention(nn.Module):
         x = torch.matmul(q, k)  # [q_len(k_len), h, b_q, b_kv]
         if attn_bias is not None:
             x = x + attn_bias
-        x = torch.softmax(x, dim=3)
-        x = self.att_dropout(x)
+        x_att = torch.softmax(x, dim=3)
+        x = self.att_dropout(x_att)
         x = x.matmul(v)  # [b, h, q_len, attn] [q_len(k_len), h, b_q, d_v]
         
         x = x.transpose(0, 2).transpose(1,2).contiguous()  # [b, q_len, h, attn] [b_q, q_len(k_len),h, d_v]
@@ -79,7 +78,7 @@ class MultiHeadAttention(nn.Module):
         x = self.output_layer(x)
 
         x=x.squeeze(1)
-        return x
+        return x,x_att
 
 
 class EncoderLayer(nn.Module):
@@ -96,12 +95,14 @@ class EncoderLayer(nn.Module):
         self.ffn_dropout = nn.Dropout(dropout_rate)
 
     def forward(self, x, kv, attn_bias=None):
+        # print('this is sumpooling')
         # print('x_shape: ',x.shape)
+        # print('kv_shape: ',kv.shape)
         y = self.self_attention_norm(x)
         # print('y_shape: ',y.shape)
         kv = self.self_attention_norm(kv)
         # print('kv_shape: ',kv.shape)
-        y = self.self_attention(y, kv, kv, attn_bias)
+        y,y_att = self.self_attention(y, kv, kv, attn_bias)
         y = self.self_attention_dropout(y)
         x = x + y
 
@@ -109,5 +110,4 @@ class EncoderLayer(nn.Module):
         y = self.ffn(y)
         y = self.ffn_dropout(y)
         x = x + y
-
-        return x
+        return x,y_att
