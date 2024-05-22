@@ -10,50 +10,54 @@ import warnings
 warnings.filterwarnings('ignore')
 
 
-data=pd.read_csv('./data_chung/schneider50k.tsv',sep='\t',index_col=0)
+# data=pd.read_csv('./data_chung/tpl.csv')
 
-def new_smi_react(smi):
-    rxnmapper = RXNMapper()
-    try:
-        mapped_smi=rxnmapper.get_attention_guided_atom_maps([smi])[0]['mapped_rxn']
-        precusor,product=smi.split('>>')
-        precusor1,product1=mapped_smi.split('>>')
+# def new_smi_react(smi):
+#     rxnmapper = RXNMapper()
+#     try:
+#         mapped_smi=rxnmapper.get_attention_guided_atom_maps([smi])[0]['mapped_rxn']
+#         precusor,product=smi.split('>>')
+#         precusor1,product1=mapped_smi.split('>>')
 
-        # Choose mapped precusor
-        ele_react=precusor.split('.')
-        ele_react1=precusor1.split('.')
-        precusor_main=[i for i in ele_react if i not in ele_react1]
-        precusor_str='.'.join(precusor_main)
-        reagent_1=[i for i in ele_react if i in ele_react1]
+#         # Choose mapped precusor
+#         ele_react=precusor.split('.')
+#         ele_react1=precusor1.split('.')
+#         precusor_main=[i for i in ele_react if i not in ele_react1]
+#         precusor_str='.'.join(precusor_main)
+#         reagent_1=[i for i in ele_react if i in ele_react1]
 
-        # Choose mapped product
-        ele_pro=product.split('.')
-        ele_pro1=product1.split('.')
-        product_main=[i for i in ele_pro if i not in ele_pro1]
-        product_main_2=[i for i in product_main if i not in precusor_main]
-        product_str='.'.join(product_main_2)
-        reagent_2=[i for i in ele_pro if i in ele_pro1]
+#         # Choose mapped product
+#         ele_pro=product.split('.')
+#         ele_pro1=product1.split('.')
+#         product_main=[i for i in ele_pro if i not in ele_pro1]
+#         product_main_2=[i for i in product_main if i not in precusor_main]
+#         product_str='.'.join(product_main_2)
+#         reagent_2=[i for i in ele_pro if i in ele_pro1]
 
-        reagent=reagent_1+reagent_2
-        reagent='.'.join(reagent)
+#         reagent=reagent_1+reagent_2
+#         reagent='.'.join(reagent)
         
-        new_react=precusor_str+'>>'+product_str
-    except:
-        new_react=np.nan
-        reagent=np.nan
+#         new_react=precusor_str+'>>'+product_str
+#     except:
+#         new_react=np.nan
+#         reagent=np.nan
 
-    return new_react,reagent
-df=pd.DataFrame(data['rxn'].apply(new_smi_react))
-data[['new_rxn','reagent_separated']]=df['rxn'].apply(pd.Series)
-data=data.dropna(subset=['new_rxn','reagent_separated'])
+#     return new_react,reagent
+# # df=pd.DataFrame(data['rxn'].apply(new_smi_react))
+# for i in tqdm(data['rxn'].values):
+#     mapped_smi,reagent_se=new_smi_react(i)
+#     data.loc[data['rxn']==i,'new_rxn']=mapped_smi
+#     data.loc[data['rxn']==i,'reagent_separated']=reagent_se
+# # data[['new_rxn','reagent_separated']]=df['rxn'].apply(pd.Series)
+# data=data.dropna(subset=['new_rxn','reagent_separated'])
+# data.to_csv('./data_chung/tpl_mapped.csv')
 
 
 
 
-# Transfer from rxn_class to class
-with open('./data_chung/rxnclass2id.json','r') as f:
-    rxnclass2id=json.load(f)
-data['y']=[rxnclass2id[c] for c in data['rxn_class']]
+data=pd.read_csv('./data_chung/tpl_mapped.csv')
+data=data.fillna('')
+data['y']=data['rxn_class']
 
 data_pretrain=data[data.split=='train']
 data_train,data_valid=train_test_split(data_pretrain,test_size=0.2,stratify=data_pretrain['y'].values)
@@ -75,16 +79,16 @@ reagent_max_cnt=np.max([smi.count('.')+1 for smi in reagent])
 rsmi_list_train=data_train['new_rxn'].values
 reagent_train=data_train['reagent_separated'].values
 y_list_train=data_train['y'].values
-y_list_train=to_categorical(y_list_train, 50)
-filename_train='./data_chung/data_train_ms.npz'
+y_list_train=to_categorical(y_list_train, 1000)
+filename_train='./data_chung/data_train_tpl.npz'
 get_graph_data(rsmi_list_train,reagent_train,y_list_train,filename_train,rmol_max_cnt,pmol_max_cnt,reagent_max_cnt)
 
 #get_data_valid
 rsmi_list_valid=data_valid['new_rxn'].values
 reagent_valid=data_valid['reagent_separated'].values
 y_list_valid=data_valid['y'].values
-y_list_valid=to_categorical(y_list_valid, 50)
-filename_valid='./data_chung/data_valid_ms.npz'
+y_list_valid=to_categorical(y_list_valid, 1000)
+filename_valid='./data_chung/data_valid_tpl.npz'
 get_graph_data(rsmi_list_valid,reagent_valid,y_list_valid,filename_valid,rmol_max_cnt,pmol_max_cnt,reagent_max_cnt)
 
 #get_data_test
@@ -92,6 +96,6 @@ data_test=data[data['split']=='test']
 reagent_test=data_test['reagent_separated'].values
 rsmi_list_test=data_test['new_rxn'].values
 y_list_test=data_test['y'].values
-y_list_test=to_categorical(y_list_test, 50)
-filename_test='./data_chung/data_test_ms.npz'
+y_list_test=to_categorical(y_list_test, 1000)
+filename_test='./data_chung/data_test_tpl.npz'
 get_graph_data(rsmi_list_test,reagent_test,y_list_test,filename_test,rmol_max_cnt,pmol_max_cnt,reagent_max_cnt)
