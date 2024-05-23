@@ -2,3 +2,6 @@
 /draft.py
 /data_chung/tpl_mapped.csv
 /data_chung/tpl.csv
+/data_chung/data_test_tpl.npz
+/data_chung/data_train_tpl.npz
+/data_chung/data_valid_tpl.npz
