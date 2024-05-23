@@ -23,7 +23,7 @@ def finetune(args):
     use_saved = False
     model_path = "./data_chung/model/finetuned/model.pt"
 
-    train_set = GraphDataset(args.graph_save_path+'data_train_ms.npz')
+    train_set = GraphDataset(args.graph_save_path+'data_train_tpl.npz')
 
     train_loader = DataLoader(
         dataset=train_set,
@@ -33,7 +33,7 @@ def finetune(args):
         drop_last=True,
     )
 
-    valid_set = GraphDataset(args.graph_save_path+'data_valid_ms.npz')
+    valid_set = GraphDataset(args.graph_save_path+'data_valid_tpl.npz')
 
     val_loader = DataLoader(
         dataset=valid_set,
@@ -43,7 +43,7 @@ def finetune(args):
         drop_last=True,
     )
 
-    test_set=GraphDataset(args.graph_save_path+'data_test_ms.npz')
+    test_set=GraphDataset(args.graph_save_path+'data_test_tpl.npz')
     test_loader = DataLoader(
         dataset=test_set,
         batch_size=batch_size,
@@ -71,7 +71,7 @@ def finetune(args):
 
     pretrained_model_path = "./model/pretrained/" + "27407_pretrained_gnn.pt" 
 
-    net = reactionMPNN(node_dim, edge_dim, pretrained_model_path).to('cuda')
+    net = reactionMPNN(node_dim, edge_dim).to('cuda')
 
     if use_saved == False:
         print("-- TRAINING")
