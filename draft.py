@@ -37,15 +37,15 @@ test_y_pred = inference(
 )
 print('accuracy',accuracy_score(test_y, test_y_pred))
 
-true_idx= test_y_pred == test_y
-false_idx= test_y_pred != test_y
+# true_idx= test_y_pred == test_y
+# false_idx= test_y_pred != test_y
 
-rsmi_list=test_loader.dataset.rsmi
+# rsmi_list=test_loader.dataset.rsmi
 
-rsmi_true=rsmi_list[true_idx]
-rsmi_false=rsmi_list[false_idx]
+# rsmi_true=rsmi_list[true_idx]
+# rsmi_false=rsmi_list[false_idx]
 
-test_y_true=test_y[true_idx]
-test_y_false=test_y[false_idx]  
+# test_y_true=test_y[true_idx]
+# test_y_false=test_y[false_idx]  
 
-np.savez('./data_chung/draft/test_result.npz', rsmi_true=rsmi_true, rsmi_false=rsmi_false, test_y_true=test_y_true, test_y_false=test_y_false,test_y=test_y)
+np.savez('./data_chung/draft/test_result.npz',test_y=test_y, test_y_pred=test_y_pred)
