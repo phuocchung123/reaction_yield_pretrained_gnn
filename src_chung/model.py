@@ -344,50 +344,50 @@ def training(
     weight_sc_list=[]
 
     best_val_loss =1e10
-    best_loss=1e10
-    net_contra = net
-    for epoch in range(15):
-        # training
-        net_contra.train()
-        start_time = time.time()
+    # best_loss=1e10
+    # net_contra = net
+    # for epoch in range(15):
+    #     # training
+    #     net_contra.train()
+    #     start_time = time.time()
 
-        # inputs_rmol=[]
-        # inputs_pmol=[]
-        train_loss_contra_list=[]
-        for batchdata in tqdm(train_loader, desc='Training_contra'):
-            inputs_rmol = [b.to(cuda) for b in batchdata[:rmol_max_cnt]]
-            inputs_pmol = [
-                b.to(cuda)
-                for b in batchdata[rmol_max_cnt : rmol_max_cnt + pmol_max_cnt]
-            ]
-            # inputs_rmol.extend(input_rmol)
-            # inputs_pmol.extend(input_pmol)
+    #     # inputs_rmol=[]
+    #     # inputs_pmol=[]
+    #     train_loss_contra_list=[]
+    #     for batchdata in tqdm(train_loader, desc='Training_contra'):
+    #         inputs_rmol = [b.to(cuda) for b in batchdata[:rmol_max_cnt]]
+    #         inputs_pmol = [
+    #             b.to(cuda)
+    #             for b in batchdata[rmol_max_cnt : rmol_max_cnt + pmol_max_cnt]
+    #         ]
+    #         # inputs_rmol.extend(input_rmol)
+    #         # inputs_pmol.extend(input_pmol)
         
-            _,r_rep,p_rep= net_contra(inputs_rmol, inputs_pmol)
-            print('r_rep.shape:',r_rep.shape)
-            print('p_rep.shape:',p_rep.shape)
+    #         _,r_rep,p_rep= net_contra(inputs_rmol, inputs_pmol)
+    #         # print('r_rep.shape:',r_rep.shape)
+    #         # print('p_rep.shape:',p_rep.shape)
 
-            r_rep=F.normalize(r_rep, dim=1)
-            p_rep=F.normalize(p_rep, dim=1)
-            loss_sc=nt_xent_criterion(r_rep, p_rep)
+    #         r_rep=F.normalize(r_rep, dim=1)
+    #         p_rep=F.normalize(p_rep, dim=1)
+    #         loss_sc=nt_xent_criterion(r_rep, p_rep)
 
-            optimizer.zero_grad()
-            loss_sc.backward()
-            optimizer.step()
+    #         optimizer.zero_grad()
+    #         loss_sc.backward()
+    #         optimizer.step()
 
-            train_loss_contra = loss_sc.detach().item()
-            train_loss_contra_list.append(train_loss_contra)
+    #         train_loss_contra = loss_sc.detach().item()
+    #         train_loss_contra_list.append(train_loss_contra)
 
-        print("--- training epoch %d, loss %.3f, time elapsed(min) %.2f---"
-            % (epoch, np.mean(train_loss_contra_list), (time.time() - start_time) / 60))
+    #     print("--- training epoch %d, loss %.3f, time elapsed(min) %.2f---"
+    #         % (epoch, np.mean(train_loss_contra_list), (time.time() - start_time) / 60))
         
 
-        if np.mean(train_loss_contra_list) < best_loss:
-            best_loss = np.mean(train_loss_contra_list)
-            torch.save(net_contra.state_dict(), model_path)
-    print('\n'+'*'*100)
+    #     if np.mean(train_loss_contra_list) < best_loss:
+    #         best_loss = np.mean(train_loss_contra_list)
+    #         torch.save(net_contra.state_dict(), model_path)
+    # print('\n'+'*'*100)
 
-    net.load_state_dict(torch.load(model_path))
+    # net.load_state_dict(torch.load(model_path))
 
     for epoch in range(n_epochs):
         # training
