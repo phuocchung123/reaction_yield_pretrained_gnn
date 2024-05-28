@@ -1,49 +1,51 @@
 import pandas as pd
 import numpy as np
+import torch
 import json
-from src_chung.get_reaction_data import get_graph_data
 from sklearn.model_selection import train_test_split
-from rxnmapper import RXNMapper
 from tqdm import tqdm
 import warnings
-
 warnings.filterwarnings('ignore')
+from torch.utils.data import DataLoader
+from sklearn.metrics import accuracy_score
+from src_chung.model import reactionMPNN, training, inference
+from src_chung.dataset import GraphDataset
+from src_chung.util import collate_reaction_graphs
 
 
-data=pd.read_csv('./data_chung/schneider50k.tsv',sep='\t',index_col=0)
+test_set=GraphDataset('./data_chung/data_test_tpl.npz')
+test_loader = DataLoader(
+    dataset=test_set,
+    batch_size=32,
+    shuffle=False,
+    collate_fn=collate_reaction_graphs,
+)
 
-def new_smi_react(smi):
-    rxnmapper = RXNMapper()
-    try:
-        mapped_smi=rxnmapper.get_attention_guided_atom_maps([smi])[0]['mapped_rxn']
-        precusor,product=smi.split('>>')
-        precusor1,product1=mapped_smi.split('>>')
+node_dim = test_set.rmol_node_attr[0].shape[1]
+edge_dim = test_set.rmol_edge_attr[0].shape[1]
 
-        # Choose mapped precusor
-        ele_react=precusor.split('.')
-        ele_react1=precusor1.split('.')
-        precusor_main=[i for i in ele_react if i not in ele_react1]
-        precusor_str='.'.join(precusor_main)
-        reagent_1=[i for i in ele_react if i in ele_react1]
+net = reactionMPNN(node_dim, edge_dim).to('cuda')
 
-        # Choose mapped product
-        ele_pro=product.split('.')
-        ele_pro1=product1.split('.')
-        product_main=[i for i in ele_pro if i not in ele_pro1]
-        product_main_2=[i for i in product_main if i not in precusor_main]
-        product_str='.'.join(product_main_2)
-        reagent_2=[i for i in ele_pro if i in ele_pro1]
+net.load_state_dict(torch.load('./data_chung/model/finetuned/model.pt'))
 
-        reagent=reagent_1+reagent_2
-        reagent='.'.join(reagent)
-        
-        new_react=precusor_str+'>>'+product_str
-    except:
-        new_react=np.nan
-        reagent=np.nan
+# # inference
+test_y = test_loader.dataset.y
+test_y=torch.argmax(torch.Tensor(test_y), dim=1).tolist()
 
-    return new_react,reagent
+test_y_pred = inference(
+    net, test_loader,
+)
+print('accuracy',accuracy_score(test_y, test_y_pred))
 
-data['new_rxn'],data['reagent_separated']=data['rxn'].apply(new_smi_react)
-data=data.dropna(subset=['new_rxn','reagent_separated'])
-data.head(3)
+# true_idx= test_y_pred == test_y
+# false_idx= test_y_pred != test_y
+
+rsmi_list=test_loader.dataset.rsmi
+
+# rsmi_true=rsmi_list[true_idx]
+# rsmi_false=rsmi_list[false_idx]
+
+# test_y_true=test_y[true_idx]
+# test_y_false=test_y[false_idx]  
+
+np.savez('./data_chung/draft/test_result_tpl.npz',rsmi=rsmi_list,test_y=test_y, test_y_pred=test_y_pred)
