@@ -5,3 +5,6 @@
 /data_chung/data_test_tpl.npz
 /data_chung/data_train_tpl.npz
 /data_chung/data_valid_tpl.npz
+/data_chung/uspto_cluster.csv
+/data_chung/uspto_cluster(2).csv
+/data_chung/uspto_cluster(3).csv
