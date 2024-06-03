@@ -7,3 +7,7 @@
 /data_chung/data_valid_tpl.npz
 /data_chung/draft/test_result_tpl.npz
 /data_chung/model/finetuned/model_10e_uspto.pt
+/data_chung/data_test_tpl(2).npz
+/data_chung/data_train_tpl(2).npz
+/data_chung/data_valid_tpl(2).npz
+/data_chung/model/finetuned/model.pt

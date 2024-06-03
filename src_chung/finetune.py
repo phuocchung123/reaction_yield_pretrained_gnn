@@ -23,7 +23,7 @@ def finetune(args):
     use_saved = False
     model_path = "./data_chung/model/finetuned/model.pt"
 
-    train_set = GraphDataset(args.graph_save_path+'data_train_tpl.npz')
+    train_set = GraphDataset(args.graph_save_path+'data_train_tpl(2).npz')
 
     train_loader = DataLoader(
         dataset=train_set,
@@ -33,7 +33,7 @@ def finetune(args):
         drop_last=True,
     )
 
-    valid_set = GraphDataset(args.graph_save_path+'data_valid_tpl.npz')
+    valid_set = GraphDataset(args.graph_save_path+'data_valid_tpl(2).npz')
 
     val_loader = DataLoader(
         dataset=valid_set,
@@ -43,7 +43,7 @@ def finetune(args):
         drop_last=True,
     )
 
-    test_set=GraphDataset(args.graph_save_path+'data_test_tpl.npz')
+    test_set=GraphDataset(args.graph_save_path+'data_test_tpl(2).npz')
     test_loader = DataLoader(
         dataset=test_set,
         batch_size=batch_size,
@@ -69,10 +69,10 @@ def finetune(args):
     node_dim = train_set.rmol_node_attr[0].shape[1]
     edge_dim = train_set.rmol_edge_attr[0].shape[1]
 
-    # pretrained_model_path = "./model/pretrained/" + "27407_pretrained_gnn.pt" 
+    pretrained_model_path = "./model/pretrained/" + "27407_pretrained_gnn.pt" 
     # pretrained_model_path='/home/labhhc2/Documents/Workspace/D19/Chung/reaction_yield_pretrained_gnn/data_chung/model/finetuned/model_10e_uspto.pt'
 
-    net = reactionMPNN(node_dim, edge_dim).to('cuda')
+    net = reactionMPNN(node_dim, edge_dim,pretrained_model_path).to('cuda')
 
     if use_saved == False:
         print("-- TRAINING")

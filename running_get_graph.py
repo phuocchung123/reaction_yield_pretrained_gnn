@@ -4,6 +4,7 @@ import json
 from src_chung.get_reaction_data import get_graph_data
 from sklearn.model_selection import train_test_split
 from rxnmapper import RXNMapper
+from rdkit import Chem
 from tqdm import tqdm
 import warnings
 
@@ -59,6 +60,18 @@ data=pd.read_csv('./data_chung/tpl_mapped.csv')
 data=data.fillna('')
 data['y']=data['rxn_class']
 
+idx_list=[]
+data=data.fillna('')
+for idx,i in tqdm(enumerate(data['reagent_separated'].values)):
+    for j in i.split('.'):
+        mol=Chem.MolFromSmiles(j)
+        list_charge=[a.GetFormalCharge() for a in mol.GetAtoms()]
+        for i in list_charge:
+            if np.abs(i)>5:
+                if idx not in idx_list:
+                    idx_list.append(idx)
+data=data.drop(idx_list)
+
 data_pretrain=data[data.split=='train']
 data_train,data_valid=train_test_split(data_pretrain,test_size=0.2,stratify=data_pretrain['y'].values)
 
@@ -80,7 +93,7 @@ rsmi_list_train=data_train['new_rxn'].values
 reagent_train=data_train['reagent_separated'].values
 y_list_train=data_train['y'].values
 y_list_train=to_categorical(y_list_train, 1000)
-filename_train='./data_chung/data_train_tpl.npz'
+filename_train='./data_chung/data_train_tpl(2).npz'
 get_graph_data(rsmi_list_train,reagent_train,y_list_train,filename_train,rmol_max_cnt,pmol_max_cnt,reagent_max_cnt)
 
 #get_data_valid
@@ -88,7 +101,7 @@ rsmi_list_valid=data_valid['new_rxn'].values
 reagent_valid=data_valid['reagent_separated'].values
 y_list_valid=data_valid['y'].values
 y_list_valid=to_categorical(y_list_valid, 1000)
-filename_valid='./data_chung/data_valid_tpl.npz'
+filename_valid='./data_chung/data_valid_tpl(2).npz'
 get_graph_data(rsmi_list_valid,reagent_valid,y_list_valid,filename_valid,rmol_max_cnt,pmol_max_cnt,reagent_max_cnt)
 
 #get_data_test
@@ -97,5 +110,5 @@ reagent_test=data_test['reagent_separated'].values
 rsmi_list_test=data_test['new_rxn'].values
 y_list_test=data_test['y'].values
 y_list_test=to_categorical(y_list_test, 1000)
-filename_test='./data_chung/data_test_tpl.npz'
+filename_test='./data_chung/data_test_tpl(2).npz'
 get_graph_data(rsmi_list_test,reagent_test,y_list_test,filename_test,rmol_max_cnt,pmol_max_cnt,reagent_max_cnt)
