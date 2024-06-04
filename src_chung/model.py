@@ -119,7 +119,7 @@ class reactionMPNN(nn.Module):
         readout_feats=300,
         predict_hidden_feats=512,
         prob_dropout=0.1,
-        cuda=torch.device('cuda:0')
+        # cuda=torch.device(f"cuda:{torch.cuda.current_device()}")
     ):
         super(reactionMPNN, self).__init__()
 
@@ -127,7 +127,7 @@ class reactionMPNN(nn.Module):
         if pretrained_model_path is not None:
             state_dict = torch.load(
                 pretrained_model_path,
-                map_location='cuda:0',
+                map_location=torch.device(f"cuda:{torch.cuda.current_device()}"),
             )
             self.mpnn.load_my_state_dict(state_dict)
             print("Successfully loaded pretrained model!")
@@ -141,12 +141,7 @@ class reactionMPNN(nn.Module):
             nn.Dropout(prob_dropout),
             nn.Linear(predict_hidden_feats, 1000),
         )
-        # self.batch_size=batch_size
-        self.cuda=cuda
 
-        # Cross-Attention Module
-        # self.rea_attention_pro = EncoderLayer(300,128, 0.1, 0.1, 1)  # 注意力机制
-        # self.pro_attention_rea = EncoderLayer(300,128, 0.1, 0.1, 1)
 
     def forward(self, rmols=None, pmols=None,rgmols=None):
         if rgmols is None:
@@ -159,14 +154,14 @@ class reactionMPNN(nn.Module):
 
 
 
-            start_list_r=torch.zeros(r_num_nodes.size(0)).to(self.cuda)
-            start_list_p=torch.zeros(p_num_nodes.size(0)).to(self.cuda)
-            reaction_feat_full=torch.tensor([]).to(self.cuda)
-            reactants_out=torch.tensor([]).to(self.cuda)
-            products_out=torch.tensor([]).to(self.cuda)
+            start_list_r=torch.zeros(r_num_nodes.size(0)).cuda()
+            start_list_p=torch.zeros(p_num_nodes.size(0)).cuda()
+            reaction_feat_full=torch.tensor([]).cuda()
+            reactants_out=torch.tensor([]).cuda()
+            products_out=torch.tensor([]).cuda()
             for i in range(batch_size):
-                reactants=torch.tensor([]).to(self.cuda)
-                products=torch.tensor([]).to(self.cuda)
+                reactants=torch.tensor([]).cuda()
+                products=torch.tensor([]).cuda()
 
 
                 #reactants
@@ -195,9 +190,6 @@ class reactionMPNN(nn.Module):
                     products=torch.cat((products, product))
 
                 start_list_p=end_list_p
-
-                # reactants,_=self.rea_attention_pro(reactants, reactants)
-                # products,_=self.pro_attention_rea(products,products)
 
                 reactants_noncross=reactants
                 reactants,att_r=self.rea_attention_pro(reactants, products)
@@ -223,16 +215,16 @@ class reactionMPNN(nn.Module):
 
 
 
-            start_list_r=torch.zeros(r_num_nodes.size(0)).to(self.cuda)
-            start_list_p=torch.zeros(p_num_nodes.size(0)).to(self.cuda)
-            start_list_rg=torch.zeros(rg_num_nodes.size(0)).to(self.cuda)
-            reaction_feat_full=torch.tensor([]).to(self.cuda)
-            reactants_out=torch.tensor([]).to(self.cuda)
-            products_out=torch.tensor([]).to(self.cuda)
+            start_list_r=torch.zeros(r_num_nodes.size(0)).cuda()
+            start_list_p=torch.zeros(p_num_nodes.size(0)).cuda()
+            start_list_rg=torch.zeros(rg_num_nodes.size(0)).cuda()
+            reaction_feat_full=torch.tensor([]).cuda()
+            reactants_out=torch.tensor([]).cuda()
+            products_out=torch.tensor([]).cuda()
             for i in range(batch_size):
-                reactants=torch.tensor([]).to(self.cuda)
-                products=torch.tensor([]).to(self.cuda)
-                reagents=torch.tensor([]).to(self.cuda)
+                reactants=torch.tensor([]).cuda()
+                products=torch.tensor([]).cuda()
+                reagents=torch.tensor([]).cuda()
 
 
                 #reactants
@@ -262,12 +254,6 @@ class reactionMPNN(nn.Module):
 
                 start_list_p=end_list_p
 
-                # reactants,_=self.rea_attention_pro(reactants, reactants)
-                # products,_=self.pro_attention_rea(products,products)
-
-                # reactants_noncross=reactants
-                # reactants,att_r=self.rea_attention_pro(reactants, products)
-                # products,att_p=self.pro_attention_rea(products, reactants_noncross)
                 reaction_cat=torch.cat((reactants, products))
                 reaction_mean=torch.mean(reaction_cat, 0).unsqueeze(0)
 
@@ -291,8 +277,7 @@ class reactionMPNN(nn.Module):
                 reagents=torch.sum(reagents, 0).unsqueeze(0)
 
 
-                # weight=0.5*torch.rand(1) +0.5
-                # weight=weight.item()
+
                 weight=0.7
 
 
@@ -315,7 +300,7 @@ def training(
     val_loader,
     model_path,
     val_monitor_epoch=1,
-    cuda=torch.device('cuda:0'),
+    cuda=torch.device(f"cuda:{torch.cuda.current_device()}"),
 ):
     train_size = train_loader.dataset.__len__()
     batch_size = train_loader.batch_size
@@ -331,10 +316,9 @@ def training(
         rmol_max_cnt = train_loader.dataset.rmol_max_cnt
         pmol_max_cnt = train_loader.dataset.pmol_max_cnt
         rgmol_max_cnt = train_loader.dataset.rgmol_max_cnt
-    # print('rmol_max_cnt:', rmol_max_cnt, '\n pmol_max_cnt:', pmol_max_cnt)
 
     loss_fn = nn.CrossEntropyLoss()
-    n_epochs = 50
+    n_epochs = 32
     optimizer = Adam(net.parameters(), lr=5e-4, weight_decay=1e-5)
 
 
@@ -347,48 +331,6 @@ def training(
     weight_sc_list=[]
 
     best_val_loss =1e10
-    # best_loss=1e10
-    # net_contra = net
-    # for epoch in range(15):
-    #     # training
-    #     net_contra.train()
-    #     start_time = time.time()
-
-    #     # inputs_rmol=[]
-    #     # inputs_pmol=[]
-    #     train_loss_contra_list=[]
-    #     for batchdata in tqdm(train_loader, desc='Training_contra'):
-    #         inputs_rmol = [b.to(cuda) for b in batchdata[:rmol_max_cnt]]
-    #         inputs_pmol = [
-    #             b.to(cuda)
-    #             for b in batchdata[rmol_max_cnt : rmol_max_cnt + pmol_max_cnt]
-    #         ]
-    #         # inputs_rmol.extend(input_rmol)
-    #         # inputs_pmol.extend(input_pmol)
-        
-    #         _,r_rep,p_rep= net_contra(inputs_rmol, inputs_pmol)
-
-    #         r_rep=F.normalize(r_rep, dim=1)
-    #         p_rep=F.normalize(p_rep, dim=1)
-    #         loss_sc=nt_xent_criterion(r_rep, p_rep)
-
-    #         optimizer.zero_grad()
-    #         loss_sc.backward()
-    #         optimizer.step()
-
-    #         train_loss_contra = loss_sc.detach().item()
-    #         train_loss_contra_list.append(train_loss_contra)
-
-    #     print("--- training epoch %d, loss %.3f, time elapsed(min) %.2f---"
-    #         % (epoch, np.mean(train_loss_contra_list), (time.time() - start_time) / 60))
-        
-
-    #     if np.mean(train_loss_contra_list) < best_loss:
-    #         best_loss = np.mean(train_loss_contra_list)
-    #         torch.save(net_contra.state_dict(), model_path)
-    # print('\n'+'*'*100)
-
-    # net.load_state_dict(torch.load(model_path))
 
     for epoch in range(n_epochs):
         # training
@@ -400,15 +342,9 @@ def training(
         targets=[]
         preds=[]
 
-        # # weight_ce=torch.rand(1).item()
-        # # weight_sc=1-weight_ce
-        # # weight_sc_list.append(weight_sc)
-        # weight_ce=0.62
-        # weight_sc=0.38
 
         for batchdata in tqdm(train_loader, desc='Training'):
             inputs_rmol = [b.to(cuda) for b in batchdata[:rmol_max_cnt]]
-            # print('inputs_rmol_shape: ',len(inputs_rmol))
             inputs_pmol = [
                 b.to(cuda)
                 for b in batchdata[rmol_max_cnt : rmol_max_cnt + pmol_max_cnt]
@@ -417,7 +353,6 @@ def training(
                 b.to(cuda)
                 for b in batchdata[rmol_max_cnt + pmol_max_cnt : rmol_max_cnt + pmol_max_cnt + rgmol_max_cnt]
             ]
-            # print('inputs_pmol_shape: ',len(inputs_pmol))
 
             labels = batchdata[-1]
             targets.extend(labels.tolist())
@@ -425,16 +360,10 @@ def training(
 
             r_rep,_,_= net(inputs_rmol, inputs_pmol, inputs_rgmol)
 
-            # r_rep_contra=F.normalize(r_rep, dim=1)
-            # p_rep_contra=F.normalize(p_rep, dim=1)
-            # loss_sc=nt_xent_criterion(r_rep_contra, p_rep_contra)
 
             pred = net.predict(r_rep)
             preds.extend(torch.argmax(pred, dim=1).tolist())
             loss= loss_fn(pred, labels)
-
-
-            # loss = weight_ce*loss_ce+weight_sc*loss_sc
 
 
             optimizer.zero_grad()
@@ -546,7 +475,7 @@ def training(
 def inference(
     net,
     test_loader,
-    cuda=torch.device('cuda:0'),
+    cuda=torch.device(f"cuda:{torch.cuda.current_device()}"),
 ):
     batch_size = test_loader.batch_size
 

@@ -36,5 +36,7 @@ if __name__ == "__main__":
     if not os.path.exists("./data_chung/model/finetuned/"):
         os.makedirs("./data_chung/model/finetuned/")
 
+    # torch.cuda.set_device(1)
+    print('epoch=32')
 
     finetune(args)

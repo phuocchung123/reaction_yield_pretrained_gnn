@@ -29,6 +29,7 @@ def finetune(args):
         dataset=train_set,
         batch_size=int(np.min([batch_size, len(train_set)])),
         shuffle=True,
+        num_workers = 2,
         collate_fn=collate_reaction_graphs,
         drop_last=True,
     )
@@ -39,6 +40,7 @@ def finetune(args):
         dataset=valid_set,
         batch_size=batch_size,
         shuffle=False,
+        num_workers = 2,
         collate_fn=collate_reaction_graphs,
         drop_last=True,
     )
@@ -47,6 +49,7 @@ def finetune(args):
     test_loader = DataLoader(
         dataset=test_set,
         batch_size=batch_size,
+        num_workers=2,
         shuffle=False,
         collate_fn=collate_reaction_graphs,
     )
@@ -69,10 +72,11 @@ def finetune(args):
     node_dim = train_set.rmol_node_attr[0].shape[1]
     edge_dim = train_set.rmol_edge_attr[0].shape[1]
 
-    pretrained_model_path = "./model/pretrained/" + "27407_pretrained_gnn.pt" 
+    # pretrained_model_path = "./model/pretrained/" + "27407_pretrained_gnn.pt" 
     # pretrained_model_path='/home/labhhc2/Documents/Workspace/D19/Chung/reaction_yield_pretrained_gnn/data_chung/model/finetuned/model_10e_uspto.pt'
 
-    net = reactionMPNN(node_dim, edge_dim,pretrained_model_path).to('cuda')
+    net = reactionMPNN(node_dim, edge_dim).cuda()
+    net.load_state_dict(torch.load('./data_chung/model/finetuned/model_mean.pt'))
 
     if use_saved == False:
         print("-- TRAINING")
@@ -85,7 +89,7 @@ def finetune(args):
     test_y = test_loader.dataset.y
     test_y=torch.argmax(torch.Tensor(test_y), dim=1).tolist()
 
-    net = reactionMPNN(node_dim, edge_dim).to('cuda')
+    net = reactionMPNN(node_dim, edge_dim).cuda()
     net.load_state_dict(torch.load(model_path))
     test_y_pred = inference(
         net, test_loader,

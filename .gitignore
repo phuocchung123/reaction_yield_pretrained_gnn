@@ -10,4 +10,6 @@
 /data_chung/data_test_tpl(2).npz
 /data_chung/data_train_tpl(2).npz
 /data_chung/data_valid_tpl(2).npz
-/data_chung/model/finetuned/model.pt
+/data_chung/model/finetuned/model_0mean.pt
+/data_chung/model/finetuned/model_interupt.pt
+/data_chung/model/finetuned/model_mean.pt
