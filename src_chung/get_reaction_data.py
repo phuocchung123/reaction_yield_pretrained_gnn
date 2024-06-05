@@ -16,7 +16,7 @@ def mol_dict():
     }
 
 
-def get_graph_data(rsmi_list,reagent, y_list, filename,rmol_max_cnt,pmol_max_cnt,rgmol_max_cnt):
+def get_graph_data(rsmi_list,reagent, y_list, filename):
     rmol_max_cnt = rmol_max_cnt
     pmol_max_cnt = pmol_max_cnt
     rgmol_max_cnt=rgmol_max_cnt
