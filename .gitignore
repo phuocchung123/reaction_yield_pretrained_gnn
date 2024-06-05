@@ -13,3 +13,6 @@
 /data_chung/model/finetuned/model_10e_uspto.pt
 /data_chung/model/finetuned/model_interupt.pt
 /data_chung/model/finetuned/model_mean.pt
+/data_chung/uspto_cluster.csv
+/data_chung/uspto_cluster(2).csv
+/data_chung/uspto_cluster(3).csv
