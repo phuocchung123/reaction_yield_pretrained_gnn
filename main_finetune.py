@@ -37,6 +37,6 @@ if __name__ == "__main__":
         os.makedirs("./data_chung/model/finetuned/")
 
     # torch.cuda.set_device(1)
-    print('epoch=32')
+    print('epoch=50')
 
     finetune(args)

@@ -1,4 +1,5 @@
 import time
+import json
 import numpy as np
 import torch
 import torch.nn as nn
@@ -278,10 +279,10 @@ class reactionMPNN(nn.Module):
 
 
 
-                weight=0.7
+                # weight=0.7
 
 
-                reaction_feat=reaction_feat*weight+ reagents*0.2 + reaction_mean*0.1
+                reaction_feat=reaction_feat*0.5+ reagents*0.25 + reaction_mean*0.25
 
                 reaction_feat_full=torch.cat((reaction_feat_full, reaction_feat))
                 reactants_out=torch.cat((reactants_out, reactants))
@@ -318,7 +319,7 @@ def training(
         rgmol_max_cnt = train_loader.dataset.rgmol_max_cnt
 
     loss_fn = nn.CrossEntropyLoss()
-    n_epochs = 32
+    n_epochs = 50
     optimizer = Adam(net.parameters(), lr=5e-4, weight_decay=1e-5)
 
 
@@ -462,6 +463,18 @@ def training(
                     % (epoch, np.mean(val_loss_list),val_acc,val_mcc)
                 )
                 print('\n'+'*'*100)
+            
+        dict={
+            'epoch':epoch,
+            'train_loss':np.mean(train_loss_list),
+            'val_loss':np.mean(val_loss_list),
+            'train_acc':acc,
+            'val_acc':val_acc,
+
+        }
+        with open('./data_chung/monitor.txt','a') as f:
+            f.write(json.dumps(dict)+'\n')
+
         if np.mean(val_loss_list) < best_val_loss:
             best_val_loss = np.mean(val_loss_list)
             torch.save(net.state_dict(), model_path)
