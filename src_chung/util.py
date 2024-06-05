@@ -15,9 +15,9 @@ def collate_graphs_pretraining(batch):
 
 
 def collate_reaction_graphs(batch):
-    batchdata = list(map(list, zip(*batch)))
-    gs = [dgl.batch(s) for s in batchdata[:-1]]
-    labels = torch.stack([torch.argmax(y) for y in torch.Tensor(batchdata[-1])], axis=0) 
+    # batchdata = list(map(list, zip(*batch)))
+    gs = [dgl.batch(s) for s in batch[:-1]]
+    labels = torch.stack([torch.argmax(y) for y in torch.Tensor(batch[-1])], axis=0) 
 
     return *gs, labels
 

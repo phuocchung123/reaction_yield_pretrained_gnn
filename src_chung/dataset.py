@@ -1,5 +1,6 @@
 import numpy as np
 import torch
+import dgl
 from dgl.convert import graph
 
 
@@ -172,13 +173,15 @@ class GraphDataset:
                     self.rgmol_e_csum[j][idx] : self.rgmol_e_csum[j][idx + 1]
                 ]
             ).float()
-
+        g1=dgl.batch(g1)
+        g2=dgl.batch(g2)
+        g3=dgl.batch(rg)
 
 
 
         label = self.y[idx]
 
-        return *g1, *g2, *rg,label
+        return g1,g2,g3,label
 
     def __len__(self):
         return self.y.shape[0]
