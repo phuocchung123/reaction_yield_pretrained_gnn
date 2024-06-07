@@ -282,7 +282,7 @@ class reactionMPNN(nn.Module):
                 # weight=0.7
 
 
-                reaction_feat=reaction_feat*0.5+ reagents*0.25 + reaction_mean*0.25
+                reaction_feat=reaction_feat*0.6+ reagents*0.2 + reaction_mean*0.2
 
                 reaction_feat_full=torch.cat((reaction_feat_full, reaction_feat))
                 reactants_out=torch.cat((reactants_out, reactants))
@@ -300,8 +300,10 @@ def training(
     train_loader,
     val_loader,
     model_path,
+    number_epoch=50,
     val_monitor_epoch=1,
     cuda=torch.device(f"cuda:{torch.cuda.current_device()}"),
+    best_val_loss=1e10,
 ):
     train_size = train_loader.dataset.__len__()
     batch_size = train_loader.batch_size
@@ -319,7 +321,7 @@ def training(
         rgmol_max_cnt = train_loader.dataset.rgmol_max_cnt
 
     loss_fn = nn.CrossEntropyLoss()
-    n_epochs = 50
+    n_epochs = number_epoch
     optimizer = Adam(net.parameters(), lr=5e-4, weight_decay=1e-5)
 
 
@@ -330,8 +332,8 @@ def training(
     mcc_all=[]
     mcc_all_val=[]
     weight_sc_list=[]
-
-    best_val_loss =1e10
+    # if best_val_loss == None:
+    #     best_val_loss =1e10
 
     for epoch in range(n_epochs):
         # training
@@ -444,9 +446,9 @@ def training(
                     val_loss = loss.item()
                     val_loss_list.append(val_loss)
 
-                if np.mean(val_loss_list) < best_val_loss:
-                    best_val_loss = np.mean(val_loss_list)
-                    torch.save(net.state_dict(), model_path)
+                # if np.mean(val_loss_list) < best_val_loss:
+                #     best_val_loss = np.mean(val_loss_list)
+                #     torch.save(net.state_dict(), model_path)
 
                 val_acc = accuracy_score(val_targets, val_preds)
                 val_mcc = matthews_corrcoef(val_targets, val_preds)
@@ -472,12 +474,17 @@ def training(
             'val_acc':val_acc,
 
         }
-        with open('./data_chung/monitor.txt','a') as f:
+        with open('./data_chung/monitor/monitor.txt','a') as f:
             f.write(json.dumps(dict)+'\n')
 
         if np.mean(val_loss_list) < best_val_loss:
             best_val_loss = np.mean(val_loss_list)
-            torch.save(net.state_dict(), model_path)
+            # torch.save(net.state_dict(), model_path)
+            torch.save({
+                        'epoch': epoch,
+                        'model_state_dict': net.state_dict(),
+                        'val_loss': best_val_loss,
+                        },model_path)
 
 
     print("training terminated at epoch %d" % epoch)

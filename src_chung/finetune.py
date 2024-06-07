@@ -21,7 +21,8 @@ def finetune(args):
 
     batch_size = 32
     use_saved = False
-    model_path = "./data_chung/model/finetuned/model.pt"
+    model_path = "./data_chung/checkpoint/checkpoint.tar"
+    epochs=50
 
     train_set = GraphDataset(args.graph_save_path+'data_train_tpl(2).npz')
 
@@ -72,15 +73,15 @@ def finetune(args):
     node_dim = train_set.rmol_node_attr[0].shape[1]
     edge_dim = train_set.rmol_edge_attr[0].shape[1]
 
-    # pretrained_model_path = "./model/pretrained/" + "27407_pretrained_gnn.pt" 
+    pretrained_model_path = "./model/pretrained/" + "27407_pretrained_gnn.pt" 
     # pretrained_model_path='/home/labhhc2/Documents/Workspace/D19/Chung/reaction_yield_pretrained_gnn/data_chung/model/finetuned/model_10e_uspto.pt'
 
-    net = reactionMPNN(node_dim, edge_dim).cuda()
-    net.load_state_dict(torch.load('./data_chung/model/finetuned/model_aAP.pt'))
+    net = reactionMPNN(node_dim, edge_dim,pretrained_model_path).cuda()
+    # net.load_state_dict(torch.load('./data_chung/model/finetuned/model_aAP.pt'))
 
     if use_saved == False:
         print("-- TRAINING")
-        net= training(net, train_loader,val_loader, model_path)
+        net= training(net, train_loader,val_loader, model_path,number_epoch=epochs)
 
     else:
         pass
@@ -90,7 +91,9 @@ def finetune(args):
     test_y=torch.argmax(torch.Tensor(test_y), dim=1).tolist()
 
     net = reactionMPNN(node_dim, edge_dim).cuda()
-    net.load_state_dict(torch.load(model_path))
+    # net.load_state_dict(torch.load(model_path))
+    checkpoint=torch.load(model_path)
+    net.load_state_dict(checkpoint['model_state_dict'])
     test_y_pred = inference(
         net, test_loader,
     )
