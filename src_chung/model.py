@@ -36,7 +36,7 @@ class GIN(nn.Module):
         self,
         node_in_feats,
         edge_in_feats,
-        depth=5,
+        depth=3,
         node_hid_feats=300,
         readout_feats=1024,
         dr=0.1,
@@ -140,7 +140,7 @@ class reactionMPNN(nn.Module):
             nn.Linear(predict_hidden_feats, predict_hidden_feats),
             nn.PReLU(),
             nn.Dropout(prob_dropout),
-            nn.Linear(predict_hidden_feats, 1000),
+            nn.Linear(predict_hidden_feats, 50),
         )
 
 

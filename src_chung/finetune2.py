@@ -21,10 +21,10 @@ def finetune(args):
 
     batch_size = 32
     use_saved = False
-    model_path = "./data_chung/checkpoint/checkpoint.tar"
+    model_path = "/kaggle/working/sample/data_chung/checkpoint/checkpoint.tar"
     epochs=50
 
-    train_set = GraphDataset(args.graph_save_path+'data_train_tpl(2).npz')
+    train_set = GraphDataset(args.graph_save_path+'data_train_ms.npz')
 
     train_loader = DataLoader(
         dataset=train_set,
@@ -35,7 +35,7 @@ def finetune(args):
         drop_last=True,
     )
 
-    valid_set = GraphDataset(args.graph_save_path+'data_valid_tpl(2).npz')
+    valid_set = GraphDataset(args.graph_save_path+'data_valid_ms.npz')
 
     val_loader = DataLoader(
         dataset=valid_set,
@@ -46,7 +46,7 @@ def finetune(args):
         drop_last=True,
     )
 
-    test_set=GraphDataset(args.graph_save_path+'data_test_tpl(2).npz')
+    test_set=GraphDataset(args.graph_save_path+'data_test_ms.npz')
     test_loader = DataLoader(
         dataset=test_set,
         batch_size=batch_size,
