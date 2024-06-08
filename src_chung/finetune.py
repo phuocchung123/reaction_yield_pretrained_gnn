@@ -21,7 +21,7 @@ def finetune(args):
 
     batch_size = 32
     use_saved = False
-    model_path = "./data_chung/checkpoint/checkpoint.tar"
+    model_path = "/kaggle/working/sample/data_chung/checkpoint/checkpoint.tar"
     epochs=50
 
     train_set = GraphDataset(args.graph_save_path+'data_train_ms.npz')
@@ -73,7 +73,7 @@ def finetune(args):
     node_dim = train_set.rmol_node_attr[0].shape[1]
     edge_dim = train_set.rmol_edge_attr[0].shape[1]
 
-    pretrained_model_path = "./model/pretrained/" + "27407_pretrained_gnn.pt" 
+    pretrained_model_path = "/kaggle/working/sample/model/pretrained/" + "27407_pretrained_gnn.pt" 
     # pretrained_model_path='/home/labhhc2/Documents/Workspace/D19/Chung/reaction_yield_pretrained_gnn/data_chung/model/finetuned/model_10e_uspto.pt'
 
     net = reactionMPNN(node_dim, edge_dim,pretrained_model_path).cuda()

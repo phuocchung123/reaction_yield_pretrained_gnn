@@ -474,7 +474,7 @@ def training(
             'val_acc':val_acc,
 
         }
-        with open('./data_chung/monitor/monitor.txt','a') as f:
+        with open('/kaggle/working/sample/data_chung/monitor/monitor.txt','a') as f:
             f.write(json.dumps(dict)+'\n')
 
         if np.mean(val_loss_list) < best_val_loss:
