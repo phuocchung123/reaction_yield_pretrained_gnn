@@ -255,8 +255,8 @@ class reactionMPNN(nn.Module):
 
                 start_list_p=end_list_p
 
-                # reaction_cat=torch.cat((reactants, products))
-                # reaction_mean=torch.mean(reaction_cat, 0).unsqueeze(0)
+                reaction_cat=torch.cat((reactants, products))
+                reaction_mean=torch.mean(reaction_cat, 0).unsqueeze(0)
 
                 reactants=torch.sum(reactants,0).unsqueeze(0)
                 products= torch.sum(products,0).unsqueeze(0)
@@ -282,7 +282,7 @@ class reactionMPNN(nn.Module):
                 # weight=0.7
 
 
-                reaction_feat=reaction_feat*0.7+ reagents*0.3 
+                reaction_feat=reaction_feat*0.5+ reagents*0.25 + reaction_mean*0.25 
 
                 reaction_feat_full=torch.cat((reaction_feat_full, reaction_feat))
                 reactants_out=torch.cat((reactants_out, reactants))
