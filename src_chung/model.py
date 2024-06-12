@@ -36,7 +36,7 @@ class GIN(nn.Module):
         self,
         node_in_feats,
         edge_in_feats,
-        depth=5,
+        depth=3,
         node_hid_feats=300,
         readout_feats=1024,
         dr=0.1,
@@ -120,6 +120,7 @@ class reactionMPNN(nn.Module):
         readout_feats=300,
         predict_hidden_feats=512,
         prob_dropout=0.1,
+        num_output=1000
         # cuda=torch.device(f"cuda:{torch.cuda.current_device()}")
     ):
         super(reactionMPNN, self).__init__()
@@ -140,7 +141,7 @@ class reactionMPNN(nn.Module):
             nn.Linear(predict_hidden_feats, predict_hidden_feats),
             nn.PReLU(),
             nn.Dropout(prob_dropout),
-            nn.Linear(predict_hidden_feats, 1000),
+            nn.Linear(predict_hidden_feats, num_output),
         )
 
 
@@ -304,6 +305,8 @@ def training(
     val_monitor_epoch=1,
     cuda=torch.device(f"cuda:{torch.cuda.current_device()}"),
     best_val_loss=1e10,
+    epoch_current=0,
+    monitor_path='./data_chung/monitor/monitor.txt'
 ):
     train_size = train_loader.dataset.__len__()
     batch_size = train_loader.batch_size
@@ -467,21 +470,21 @@ def training(
                 print('\n'+'*'*100)
             
         dict={
-            'epoch':epoch,
+            'epoch':epoch+epoch_current,
             'train_loss':np.mean(train_loss_list),
             'val_loss':np.mean(val_loss_list),
             'train_acc':acc,
             'val_acc':val_acc,
 
         }
-        with open('./data_chung/monitor/monitor.txt','a') as f:
+        with open(monitor_path,'a') as f:
             f.write(json.dumps(dict)+'\n')
 
         if np.mean(val_loss_list) < best_val_loss:
             best_val_loss = np.mean(val_loss_list)
             # torch.save(net.state_dict(), model_path)
             torch.save({
-                        'epoch': epoch,
+                        'epoch': epoch + epoch_current,
                         'model_state_dict': net.state_dict(),
                         'val_loss': best_val_loss,
                         },model_path)

@@ -1,6 +1,8 @@
 import numpy as np
 import torch
 import csv, os
+import json
+import datetime
 from torch.utils.data import DataLoader
 from dgl.data.utils import split_dataset
 from sklearn.metrics import accuracy_score, matthews_corrcoef, precision_score, recall_score,f1_score
@@ -22,6 +24,7 @@ def finetune(args):
     batch_size = 32
     use_saved = False
     model_path = "./data_chung/checkpoint/checkpoint.tar"
+    monitor_path='./data_chung/monitor/monitor.txt'
     epochs=50
 
     train_set = GraphDataset(args.graph_save_path+'data_train_tpl(2).npz')
@@ -73,18 +76,25 @@ def finetune(args):
     node_dim = train_set.rmol_node_attr[0].shape[1]
     edge_dim = train_set.rmol_edge_attr[0].shape[1]
 
-    pretrained_model_path = "./model/pretrained/" + "27407_pretrained_gnn.pt" 
-    # pretrained_model_path='/home/labhhc2/Documents/Workspace/D19/Chung/reaction_yield_pretrained_gnn/data_chung/model/finetuned/model_10e_uspto.pt'
-
-    net = reactionMPNN(node_dim, edge_dim,pretrained_model_path).cuda()
-    # net.load_state_dict(torch.load('./data_chung/model/finetuned/model_aAP.pt'))
-
-    if use_saved == False:
-        print("-- TRAINING")
-        net= training(net, train_loader,val_loader, model_path,number_epoch=epochs)
-
+    if not os.path.exists(model_path):
+        pretrained_model_path = "./model/pretrained/" + "27407_pretrained_gnn.pt" 
+        net = reactionMPNN(node_dim, edge_dim,pretrained_model_path).cuda()
+        epoch_current=0
+        net= training(net, train_loader,val_loader, 
+                model_path,number_epoch=epochs,
+                epoch_current=epoch_current,
+                monitor_path=monitor_path)
     else:
-        pass
+        net = reactionMPNN(node_dim, edge_dim).cuda()
+        checkpoint=torch.load(model_path)
+        net.load_state_dict(checkpoint['model_state_dict'])
+        epoch_current=checkpoint['epoch']
+        epochs=epochs - epoch_current
+        net= training(net, train_loader,val_loader, 
+                      model_path,number_epoch=epochs,
+                      best_val_loss=checkpoint['val_loss'],
+                      epoch_current=epoch_current+1,
+                      monitor_path=monitor_path)
 
     # # inference
     test_y = test_loader.dataset.y
@@ -97,9 +107,7 @@ def finetune(args):
     test_y_pred = inference(
         net, test_loader,
     )
-    # test_y_pred=torch.argmax(torch.Tensor(test_y_pred), dim=1).tolist()    
-
-
+  
     result = [
         accuracy_score(test_y, test_y_pred),
         matthews_corrcoef(test_y, test_y_pred),
@@ -117,6 +125,37 @@ def finetune(args):
         "--- Accuracy: %.3f, Mattews Correlation: %.3f,\n precision_macro: %.3f, precision_micro: %.3f,\n recall_macro: %.3f, recall_micro: %.3f,\n f1_macro: %.3f, f1_micro: %.3f"
         % (result[0], result[1],result[2],result[3],result[4],result[5],result[6],result[7])
     )
+
+    dict={
+        'Name':'TEST',
+        'Accuracy':result[0],
+        'MCC':result[1],
+        'Precision_macrio':result[2],
+        'Precision_micro':result[3],
+        'Recall_macro':result[4],
+        'Recall_micro':result[5],
+        'F1_macro':result[6],
+        'F1_micro':result[7],
+
+    }
+    with open(monitor_path,'a') as f:
+        f.write(json.dumps(dict)+'\n')
+
+    
+    current_time = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
+
+    old_path_monitor = monitor_path
+    file_name = os.path.basename(old_path_monitor)
+    file_extension_monitor = os.path.splitext(old_path_monitor)[1]
+    new_path_monitor = old_path_monitor.replace(file_name, f"monitor_{current_time}{file_extension_monitor}")
+    os.rename(old_path_monitor, new_path_monitor)
+
+    old_path_checkpoint = model_path
+    file_name = os.path.basename(old_path_checkpoint)
+    file_extension_checkpoint = os.path.splitext(old_path_checkpoint)[1]
+    new_path_checkpoint = old_path_checkpoint.replace(file_name, f"checkpoint_{current_time}{file_extension_checkpoint}")
+    os.rename(old_path_checkpoint, new_path_checkpoint)
+
 
     # sns.set()
     # fig, axes = plt.subplots(1, 3, figsize=(18, 5))
