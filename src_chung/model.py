@@ -143,6 +143,9 @@ class reactionMPNN(nn.Module):
         #     nn.Linear(predict_hidden_feats, 50),
         # )
         self.predict = nn.Sequential(
+            nn.Linear(readout_feats, predict_hidden_feats),
+            nn.PReLU(),
+            nn.Dropout(prob_dropout),
             nn.Linear(predict_hidden_feats, 50),
         )
 
