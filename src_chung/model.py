@@ -133,13 +133,16 @@ class reactionMPNN(nn.Module):
             self.mpnn.load_my_state_dict(state_dict)
             print("Successfully loaded pretrained model!")
 
+        # self.predict = nn.Sequential(
+        #     nn.Linear(readout_feats, predict_hidden_feats),
+        #     nn.PReLU(),
+        #     nn.Dropout(prob_dropout),
+        #     nn.Linear(predict_hidden_feats, predict_hidden_feats),
+        #     nn.PReLU(),
+        #     nn.Dropout(prob_dropout),
+        #     nn.Linear(predict_hidden_feats, 50),
+        # )
         self.predict = nn.Sequential(
-            nn.Linear(readout_feats, predict_hidden_feats),
-            nn.PReLU(),
-            nn.Dropout(prob_dropout),
-            nn.Linear(predict_hidden_feats, predict_hidden_feats),
-            nn.PReLU(),
-            nn.Dropout(prob_dropout),
             nn.Linear(predict_hidden_feats, 50),
         )
 
@@ -282,7 +285,7 @@ class reactionMPNN(nn.Module):
                 # weight=0.7
 
 
-                reaction_feat=reaction_feat*0.5+ reagents*0.25 + reaction_mean*0.25 
+                reaction_feat=reaction_feat*0.7+ reagents*0.3
 
                 reaction_feat_full=torch.cat((reaction_feat_full, reaction_feat))
                 reactants_out=torch.cat((reactants_out, reactants))

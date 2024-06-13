@@ -37,6 +37,6 @@ if __name__ == "__main__":
         os.makedirs("/kaggle/working/sample/data_chung/model/finetuned/")
 
     # torch.cuda.set_device(1)
-    print('epoch=50,de=3,5:2.5:2.5')
+    print('epoch=50,de=3,7:3, 1 layer for GIN')
 
     finetune(args)
