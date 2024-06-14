@@ -157,9 +157,9 @@ class reactionMPNN(nn.Module):
 
         reaction_feat=reaction_feat*0.7+ rg_graph_feats*0.3
 
-        reaction_feat_full=torch.cat((reaction_feat_full, reaction_feat))
+        # reaction_feat_full=torch.cat((reaction_feat_full, reaction_feat))
 
-        return reaction_feat_full
+        return reaction_feat
 
 
 def training(
