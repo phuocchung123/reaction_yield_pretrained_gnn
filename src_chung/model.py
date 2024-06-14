@@ -37,7 +37,7 @@ class GIN(nn.Module):
         node_in_feats,
         edge_in_feats,
         depth=3,
-        node_hid_feats=300,
+        node_hid_feats=512,
         readout_feats=1024,
         dr=0.1,
     ):
@@ -117,7 +117,7 @@ class reactionMPNN(nn.Module):
         node_in_feats,
         edge_in_feats,
         pretrained_model_path=None,
-        readout_feats=300,
+        readout_feats=512,
         predict_hidden_feats=512,
         prob_dropout=0.1,
         # cuda=torch.device(f"cuda:{torch.cuda.current_device()}")
