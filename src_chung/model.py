@@ -138,7 +138,7 @@ class reactionMPNN(nn.Module):
             nn.Linear(predict_hidden_feats, predict_hidden_feats),
             nn.PReLU(),
             nn.Dropout(prob_dropout),
-            nn.Linear(predict_hidden_feats, 117),
+            nn.Linear(predict_hidden_feats, 557),
         )
 
 
@@ -223,7 +223,7 @@ def training(
 ):
     train_size = train_loader.dataset.__len__()
     batch_size = train_loader.batch_size
-    nt_xent_criterion = NTXentLoss(cuda, batch_size)
+
     
 
     try:
