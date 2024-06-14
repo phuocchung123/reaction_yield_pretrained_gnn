@@ -61,7 +61,7 @@ def finetune(args):
     print("--- train/valid/test: %d/%d/%d" % (len(train_set),len(valid_set), len(test_set)))
     print("--- max no. reactants_train, valid, test respectively:", train_set.rmol_max_cnt, valid_set.rmol_max_cnt, test_set.rmol_max_cnt)
     print("--- max no. products_train, valid, test respectively:", train_set.pmol_max_cnt, valid_set.pmol_max_cnt, test_set.pmol_max_cnt)
-    print("--- max no. reagents_train, valid, test respectively:", train_set.rgmol_max_cnt, valid_set.rgmol_max_cnt, test_set.rgmol_max_cnt)
+    # print("--- max no. reagents_train, valid, test respectively:", train_set.rgmol_max_cnt, valid_set.rgmol_max_cnt, test_set.rgmol_max_cnt)
     print("--- use_saved:", use_saved)
     print("--- model_path:", model_path)
 
