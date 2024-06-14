@@ -37,7 +37,7 @@ class GIN(nn.Module):
         node_in_feats,
         edge_in_feats,
         depth=3,
-        node_hid_feats=512,
+        node_hid_feats=300,
         readout_feats=1024,
         dr=0.1,
     ):
@@ -92,10 +92,10 @@ class GIN(nn.Module):
         # print(node_feats.shape)
         
 
-        # readout = self.readout(g, node_feats)
-        # readout = self.sparsify(readout)
+        readout = self.readout(g, node_feats)
+        readout = self.sparsify(readout)
 
-        return node_feats
+        return readout
 
     def load_my_state_dict(self, state_dict):
         own_state = self.state_dict()
@@ -117,7 +117,7 @@ class reactionMPNN(nn.Module):
         node_in_feats,
         edge_in_feats,
         pretrained_model_path=None,
-        readout_feats=512,
+        readout_feats=300,
         predict_hidden_feats=512,
         prob_dropout=0.1,
         # cuda=torch.device(f"cuda:{torch.cuda.current_device()}")
@@ -148,154 +148,18 @@ class reactionMPNN(nn.Module):
 
 
     def forward(self, rmols=None, pmols=None,rgmols=None):
-        if rgmols is None:
-            r_graph_feats = [self.mpnn(mol) for mol in rmols]
-            p_graph_feats = [self.mpnn(mol) for mol in pmols]
+        r_graph_feats = torch.sum(torch.stack([self.mpnn(mol) for mol in rmols]), 0)
+        p_graph_feats = torch.sum(torch.stack([self.mpnn(mol) for mol in pmols]), 0)
+        rg_graph_feats=torch.sum(torch.stack([self.mpnn(mol) for mol in rgmols]), 0)
 
-            r_num_nodes=torch.stack([i.batch_num_nodes() for i in rmols])
-            p_num_nodes=torch.stack([i.batch_num_nodes() for i in pmols])
-            batch_size=r_num_nodes.size(1)
+        reaction_feat=torch.sub(r_graph_feats,p_graph_feats)
 
 
+        reaction_feat=reaction_feat*0.7+ rg_graph_feats*0.3
 
-            start_list_r=torch.zeros(r_num_nodes.size(0)).cuda()
-            start_list_p=torch.zeros(p_num_nodes.size(0)).cuda()
-            reaction_feat_full=torch.tensor([]).cuda()
-            reactants_out=torch.tensor([]).cuda()
-            products_out=torch.tensor([]).cuda()
-            for i in range(batch_size):
-                reactants=torch.tensor([]).cuda()
-                products=torch.tensor([]).cuda()
+        reaction_feat_full=torch.cat((reaction_feat_full, reaction_feat))
 
-
-                #reactants
-                num_node_list_r=r_num_nodes[:,i]
-                # idx_maxnode_r=num_node_list_r.argmax()
-                end_list_r=start_list_r + num_node_list_r
-
-                for idx,m in enumerate(r_graph_feats):
-                    start_point=start_list_r[idx].type(torch.int32)
-                    end_point=end_list_r[idx].type(torch.int32)
-
-                    reactant=m[start_point:end_point]
-                    reactants=torch.cat((reactants, reactant))
-
-
-                start_list_r=end_list_r
-
-                #products
-                num_node_list_p=p_num_nodes[:,i]
-                end_list_p=start_list_p+num_node_list_p
-                for idx,n in enumerate(p_graph_feats):
-                    start_point=start_list_p[idx].type(torch.int32)
-                    end_point=end_list_p[idx].type(torch.int32)
-
-                    product=n[start_point:end_point]
-                    products=torch.cat((products, product))
-
-                start_list_p=end_list_p
-
-                reactants_noncross=reactants
-                reactants,att_r=self.rea_attention_pro(reactants, products)
-                products,att_p=self.pro_attention_rea(products, reactants_noncross)
-                reactants=torch.sum(reactants,0).unsqueeze(0)
-                products= torch.sum(products,0).unsqueeze(0)
-
-                reaction_feat=torch.sub(reactants,products)
-
-
-                reaction_feat_full=reaction_feat
-                reactants_out=torch.cat((reactants_out, reactants))
-                products_out=torch.cat((products_out, products))
-        else:
-            r_graph_feats = [self.mpnn(mol) for mol in rmols]
-            p_graph_feats = [self.mpnn(mol) for mol in pmols]
-            rg_graph_feats=[self.mpnn(mol) for mol in rgmols]
-
-            r_num_nodes=torch.stack([i.batch_num_nodes() for i in rmols])
-            p_num_nodes=torch.stack([i.batch_num_nodes() for i in pmols])
-            rg_num_nodes=torch.stack([i.batch_num_nodes() for i in rgmols])
-            batch_size=r_num_nodes.size(1)
-
-
-
-            start_list_r=torch.zeros(r_num_nodes.size(0)).cuda()
-            start_list_p=torch.zeros(p_num_nodes.size(0)).cuda()
-            start_list_rg=torch.zeros(rg_num_nodes.size(0)).cuda()
-            reaction_feat_full=torch.tensor([]).cuda()
-            reactants_out=torch.tensor([]).cuda()
-            products_out=torch.tensor([]).cuda()
-            for i in range(batch_size):
-                reactants=torch.tensor([]).cuda()
-                products=torch.tensor([]).cuda()
-                reagents=torch.tensor([]).cuda()
-
-
-                #reactants
-                num_node_list_r=r_num_nodes[:,i]
-                # idx_maxnode_r=num_node_list_r.argmax()
-                end_list_r=start_list_r + num_node_list_r
-
-                for idx,m in enumerate(r_graph_feats):
-                    start_point=start_list_r[idx].type(torch.int32)
-                    end_point=end_list_r[idx].type(torch.int32)
-
-                    reactant=m[start_point:end_point]
-                    reactants=torch.cat((reactants, reactant))
-
-
-                start_list_r=end_list_r
-
-                #products
-                num_node_list_p=p_num_nodes[:,i]
-                end_list_p=start_list_p+num_node_list_p
-                for idx,n in enumerate(p_graph_feats):
-                    start_point=start_list_p[idx].type(torch.int32)
-                    end_point=end_list_p[idx].type(torch.int32)
-
-                    product=n[start_point:end_point]
-                    products=torch.cat((products, product))
-
-                start_list_p=end_list_p
-
-                reaction_cat=torch.cat((reactants, products))
-                reaction_mean=torch.mean(reaction_cat, 0).unsqueeze(0)
-
-                reactants=torch.sum(reactants,0).unsqueeze(0)
-                products= torch.sum(products,0).unsqueeze(0)
-
-                reaction_feat=torch.sub(reactants,products)
-
-                #reagents
-                num_node_list_rg=rg_num_nodes[:,i]
-                end_list_rg=start_list_rg+num_node_list_rg
-                for idx,n in enumerate(rg_graph_feats):
-                    start_point=start_list_rg[idx].type(torch.int32)
-                    end_point=end_list_rg[idx].type(torch.int32)
-
-                    reagent=n[start_point:end_point]
-                    reagents=torch.cat((reagents, reagent))
-
-                start_list_rg=end_list_rg
-
-                reagents=torch.sum(reagents, 0).unsqueeze(0)
-
-
-
-                # weight=0.7
-
-
-                reaction_feat=reaction_feat*0.7+ reagents*0.3
-
-                reaction_feat_full=torch.cat((reaction_feat_full, reaction_feat))
-                reactants_out=torch.cat((reactants_out, reactants))
-                products_out=torch.cat((products_out, products))
-
-
-
-            
-
-        return reaction_feat_full,reactants_out,products_out
+        return reaction_feat_full
 
 
 def training(
@@ -364,7 +228,7 @@ def training(
             targets.extend(labels.tolist())
             labels = labels.to(cuda)
 
-            r_rep,_,_= net(inputs_rmol, inputs_pmol, inputs_rgmol)
+            r_rep= net(inputs_rmol, inputs_pmol, inputs_rgmol)
 
 
             pred = net.predict(r_rep)
@@ -440,7 +304,7 @@ def training(
                     labels_val = labels_val.to(cuda)
 
 
-                    r_rep,_,_=net(inputs_rmol, inputs_pmol, inputs_rgmol)
+                    r_rep=net(inputs_rmol, inputs_pmol, inputs_rgmol)
                     pred_val = net.predict(r_rep)
                     val_preds.extend(torch.argmax(pred_val, dim=1).tolist())   
                     loss=loss_fn(pred_val,labels_val)
@@ -527,7 +391,7 @@ def inference(
                 b.to(cuda)
                 for b in batchdata[rmol_max_cnt + pmol_max_cnt : rmol_max_cnt + pmol_max_cnt + rgmol_max_cnt]
             ]
-            r_rep,_,_= net(inputs_rmol, inputs_pmol, inputs_rgmol)
+            r_rep= net(inputs_rmol, inputs_pmol, inputs_rgmol)
 
             pred = net.predict(r_rep)
 
