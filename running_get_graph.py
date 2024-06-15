@@ -15,8 +15,8 @@ data=pd.read_csv('./data_chung/cluster_rl.csv')
 data['y']=data['Cluster_R1']
 
 
-data_pretrain,data_test=train_test_split(data,test_size=0.1,stratify=data['y'].values)
-data_train,data_valid=train_test_split(data_pretrain,test_size=0.1,stratify=data_pretrain['y'].values)
+data_pretrain,data_test=train_test_split(data,test_size=0.1,stratify=data['y'].values,random_state=42)
+data_train,data_valid=train_test_split(data_pretrain,test_size=0.1,stratify=data_pretrain['y'].values,random_state=42)
 
 def to_categorical(y, num_classes):
     """ 1-hot encodes a tensor """
