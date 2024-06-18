@@ -35,14 +35,14 @@ pmol_max_cnt = np.max([smi.split(">>")[1].count(".") + 1 for smi in rsmi_list])
 rsmi_list_train=data_train['reactions'].values
 y_list_train=data_train['y'].values
 y_list_train=to_categorical(y_list_train,10)
-filename_train='./data_chung/data_train_50kba.npz'
+filename_train='./data_chung/data_train_50kunba.npz'
 get_graph_data(rsmi_list_train,y_list_train,filename_train,rmol_max_cnt,pmol_max_cnt)
 
 #get_data_valid
 rsmi_list_valid=data_valid['reactions'].values
 y_list_valid=data_valid['y'].values
 y_list_valid=to_categorical(y_list_valid, 10)
-filename_valid='./data_chung/data_valid_50kba.npz'
+filename_valid='./data_chung/data_valid_50kunba.npz'
 get_graph_data(rsmi_list_valid,y_list_valid,filename_valid,rmol_max_cnt,pmol_max_cnt)
 
 #get_data_test
@@ -50,5 +50,5 @@ get_graph_data(rsmi_list_valid,y_list_valid,filename_valid,rmol_max_cnt,pmol_max
 rsmi_list_test=data_test['reactions'].values
 y_list_test=data_test['y'].values
 y_list_test=to_categorical(y_list_test, 10)
-filename_test='./data_chung/data_test_50kba.npz'
+filename_test='./data_chung/data_test_50kunba.npz'
 get_graph_data(rsmi_list_test,y_list_test,filename_test,rmol_max_cnt,pmol_max_cnt)
