@@ -138,7 +138,7 @@ class reactionMPNN(nn.Module):
             nn.Linear(predict_hidden_feats, predict_hidden_feats),
             nn.PReLU(),
             nn.Dropout(prob_dropout),
-            nn.Linear(predict_hidden_feats, 315),
+            nn.Linear(predict_hidden_feats, 10),
         )
 
 
