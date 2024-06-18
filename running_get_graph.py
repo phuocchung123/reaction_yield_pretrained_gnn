@@ -11,7 +11,7 @@ import warnings
 warnings.filterwarnings('ignore')
 
 
-data=pd.read_csv('./data_chung/50k_balance.csv')
+data=pd.read_csv('./data_chung/50k_unbalance.csv')
 data['y']=data['class']
 
 
