@@ -22,7 +22,7 @@ def finetune(args):
     batch_size = 32
     use_saved = False
     model_path = "/kaggle/working/sample/data_chung/checkpoint/checkpoint.tar"
-    epochs=50
+    epochs=30
 
     train_set = GraphDataset(args.graph_save_path+'data_train_ms.npz')
 
