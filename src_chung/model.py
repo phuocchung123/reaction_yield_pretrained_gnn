@@ -144,8 +144,8 @@ class reactionMPNN(nn.Module):
             nn.Linear(predict_hidden_feats, num_output),
         )
 
-        # self.rea_attention_pro = EncoderLayer(300,128, 0.1, 0.1, 1)  # 注意力机制
-        # self.pro_attention_rea = EncoderLayer(300,128, 0.1, 0.1, 1)
+        self.rea_attention_pro = EncoderLayer(300,128, 0.1, 0.1, 1)  # 注意力机制
+        self.pro_attention_rea = EncoderLayer(300,128, 0.1, 0.1, 1)
 
 
     def forward(self, rmols=None, pmols=None,rgmols=None):
@@ -261,9 +261,9 @@ class reactionMPNN(nn.Module):
 
                 # reaction_cat=torch.cat((reactants, products))
                 # reaction_mean=torch.mean(reaction_cat, 0).unsqueeze(0)
-                # reactants_noncross=reactants
-                # reactants,att_r=self.rea_attention_pro(reactants, products)
-                # products,att_p=self.pro_attention_rea(products, reactants_noncross)
+                reactants_noncross=reactants
+                reactants,att_r=self.rea_attention_pro(reactants, products)
+                products,att_p=self.pro_attention_rea(products, reactants_noncross)
 
                 reactants=torch.sum(reactants,0).unsqueeze(0)
                 products= torch.sum(products,0).unsqueeze(0)
