@@ -36,5 +36,5 @@ if __name__ == "__main__":
     if not os.path.exists("./data_chung/model/finetuned/"):
         os.makedirs("./data_chung/model/finetuned/")
 
-
+    print('trial')
     finetune(args)
