@@ -1,0 +1,9 @@
+rdkit
+torch
+pandas
+numpy
+pyyaml
+torchdata
+pydantic
+scikit-learn
+seaborn
